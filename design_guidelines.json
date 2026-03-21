@@ -1,0 +1,129 @@
+{
+  "project_name": "EasyLeaz",
+  "brand_archetype": "The Performance Pro mixed with Jewel & Luxury",
+  "language": "fr",
+  "theme_strategy": {
+    "mode": "dark",
+    "rationale": "Ultra-premium, cinematic, moody aesthetic required by the problem statement."
+  },
+  "colors": {
+    "background": {
+      "base": "#071A1F",
+      "gradient_start": "#0E2F36",
+      "gradient_end": "#0F3F46"
+    },
+    "accent": {
+      "cyan": "#22D3EE",
+      "cyan_glow": "#2EE6FF"
+    },
+    "text": {
+      "primary": "#E6F7FF",
+      "secondary": "rgba(230, 247, 255, 0.7)",
+      "muted": "rgba(230, 247, 255, 0.4)"
+    },
+    "surfaces": {
+      "card_bg": "rgba(14, 47, 54, 0.4)",
+      "glass_bg": "rgba(7, 26, 31, 0.65)",
+      "border": "rgba(34, 211, 238, 0.2)",
+      "border_active": "rgba(34, 211, 238, 0.6)"
+    }
+  },
+  "typography": {
+    "fonts": {
+      "headings": "Cinzel",
+      "body": "Inter"
+    },
+    "rules": {
+      "h1": "font-cinzel text-5xl md:text-7xl lg:text-8xl tracking-tighter uppercase font-black text-[#E6F7FF]",
+      "h2": "font-cinzel text-4xl md:text-5xl tracking-tight uppercase font-bold text-[#E6F7FF]",
+      "h3": "font-cinzel text-2xl md:text-3xl tracking-tight uppercase font-semibold text-[#E6F7FF]",
+      "body": "font-inter text-base md:text-lg leading-relaxed text-[#E6F7FF] opacity-80",
+      "overline": "font-inter text-xs md:text-sm font-bold tracking-[0.2em] uppercase text-[#22D3EE]"
+    }
+  },
+  "visual_enhancers": {
+    "glassmorphism": "bg-[#071A1F]/65 backdrop-blur-xl border border-[#22D3EE]/20 shadow-[0_8px_32px_rgba(0,0,0,0.5)]",
+    "glow_effects": "shadow-[0_0_15px_rgba(46,230,255,0.4)] hover:shadow-[0_0_25px_rgba(46,230,255,0.7)]",
+    "tracing_beam": "relative overflow-hidden before:absolute before:inset-0 before:rounded-xl before:border before:border-transparent before:[background:linear-gradient(90deg,transparent,#22D3EE,transparent)_border-box] before:[mask-composite:exclude]",
+    "hover_zoom": "group overflow-hidden rounded-xl",
+    "hover_zoom_image": "transition-transform duration-700 ease-out group-hover:scale-105"
+  },
+  "layouts_and_grids": {
+    "marketing_pages": {
+      "strategy": "Asymmetrical Bento Grid (TETRIS MODE) and wide overlapping layouts. Avoid standard Vercel blocks.",
+      "spacing": "Generous. Use py-24 or py-32 for sections. gap-8 or gap-12 for grids.",
+      "hero": "Full viewport height (100vh). Absolute positioning for background imagery with parallax scroll effects. Floating glassmorphism booking card."
+    },
+    "admin_dashboard": {
+      "strategy": "High Density Grid. Strict hierarchy, sharp edges, and high contrast for functional beauty.",
+      "spacing": "Tight padding (p-4 to p-6). gap-4 or gap-6 for metrics cards.",
+      "sidebar": "Fixed left sidebar, glassmorphism dark theme, cyan accents on active states."
+    }
+  },
+  "pages": {
+    "landing_page": {
+      "hero": "Parallax background image of luxury car. Cinzel massive headline 'L'EXCELLENCE AUTOMOBILE'. CTA button with cyan glow.",
+      "vehicle_showcase": "Bento grid or Swiper slider with advanced hover zoom images. Cards have 1px cyan-tinted borders.",
+      "process_steps": "Staggered layout. 3 steps: 1. Choix du véhicule, 2. Dossier & Validation, 3. Livraison VIP. Use glowing line connecting steps.",
+      "leasing_form": "Glassmorphism modal or embedded section. Dark inputs with cyan focus rings.",
+      "appointment": "Embedded Calendly placeholder. Surrounded by deep dark blue gradients.",
+      "contact": "Massive footer. Generous spacing. Elegant Cinzel typography for contact details."
+    },
+    "admin_dashboard": {
+      "vehicle_crud": "Data table (Shadcn) showing all vehicles, price, status. 'Add Vehicle' opens a drawer/modal.",
+      "cms_editor": "Forms to edit hero text, process descriptions. Real-time preview if possible.",
+      "requests_viewer": "List of leasing requests with status toggles (Pending, Approved, Rejected)."
+    }
+  },
+  "motion_and_animations": {
+    "library": "framer-motion, lenis",
+    "scroll_reveal": "Fade up with blur: initial opacity-0 blur-md translate-y-8, whileInView opacity-100 blur-0 translate-y-0. duration 0.8s.",
+    "parallax": "Use framer-motion useScroll and useTransform on background image Y-axis for smooth depth effect.",
+    "micro_interactions": "Buttons scale down slightly on active (scale: 0.98). Cyan border glows intensely on hover.",
+    "stagger_children": "Use variants in framer-motion to stagger vehicle cards loading by 0.1s."
+  },
+  "components_strategy": {
+    "html_tailwind": "Use pure HTML/Tailwind for marketing layouts, Hero, Process Steps, Bento Grids.",
+    "shadcn_ui": "Use Shadcn strictly for interactive logic: Forms, Inputs, Selects, Dialogs (for Leasing Form), Data Tables (Admin), Tabs.",
+    "overrides": "All Shadcn components must be customized to dark mode. No generic gray borders. Use #071A1F and #22D3EE heavily for component states."
+  },
+  "images": {
+    "hero_background": {
+      "url": "https://images.unsplash.com/photo-1617814076231-2c58846db944?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA3MDB8MHwxfHNlYXJjaHwyfHxtZXJjZWRlcyUyMGFtZyUyMGRhcmt8ZW58MHx8fHwxNzc0MTEwNTk1fDA&ixlib=rb-4.1.0&q=85",
+      "description": "Black Mercedes Benz AMG on road. Perfect for cinematic parallax hero."
+    },
+    "vehicle_1": {
+      "url": "https://images.unsplash.com/photo-1617814076367-b759c7d7e738?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA3MDB8MHwxfHNlYXJjaHw0fHxtZXJjZWRlcyUyMGFtZyUyMGRhcmt8ZW58MHx8fHwxNzc0MTEwNTk1fDA&ixlib=rb-4.1.0&q=85",
+      "description": "Black Porsche 911 on dock. Use for vehicle grid."
+    },
+    "vehicle_2": {
+      "url": "https://images.pexels.com/photos/5050537/pexels-photo-5050537.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+      "description": "Stylish McLaren supercar parked in futuristic garage."
+    },
+    "vehicle_3": {
+      "url": "https://images.pexels.com/photos/6650819/pexels-photo-6650819.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+      "description": "Red McLaren 720S."
+    },
+    "process_section": {
+      "url": "https://images.unsplash.com/photo-1618849888046-a6067b2c92bb?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA3MDB8MHwxfHNlYXJjaHwxfHxtZXJjZWRlcyUyMGFtZyUyMGRhcmt8ZW58MHx8fHwxNzc0MTEwNTk1fDA&ixlib=rb-4.1.0&q=85",
+      "description": "Black car with open door. Represents handover / VIP delivery."
+    },
+    "textures": {
+      "url": "https://images.unsplash.com/photo-1771507092806-a3fdb881fd53?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzMjV8MHwxfHNlYXJjaHwxfHxhYnN0cmFjdCUyMGRhcmslMjBibHVlJTIwZ2xhc3N8ZW58MHx8fHwxNzc0MTEwNjA0fDA&ixlib=rb-4.1.0&q=85",
+      "description": "Dark blue cracked glass texture. Use as overlay pattern with low opacity on backgrounds."
+    }
+  },
+  "universal_guidelines_for_main_agent": [
+    "NEVER center-align the main app container. Do not add '.App { text-align: center; }'.",
+    "All interactive elements MUST include a data-testid attribute formatted as kebab-case and role-based (e.g., data-testid='leasing-submit-button').",
+    "DO NOT use 'transition: all' in CSS or Tailwind. Always specify exact transition properties to avoid breaking transforms.",
+    "Avoid standard Vercel/Stripe component looks. Overwrite Shadcn styles to match the dark premium theme.",
+    "Do not use complete transparent backgrounds for overlays, sticky headers, or dropdowns. Always use a blur and tint, e.g., bg-[#071A1F]/80 backdrop-blur-xl.",
+    "Use French text ONLY. Placeholder text must be in French.",
+    "Grid children MUST be direct children. If using Framer Motion on a grid item, make the motion.div the direct child of the grid.",
+    "Never use AI assistant emojis in the UI.",
+    "Prioritize optical alignment over geometric alignment (e.g., adjust padding for icons inside buttons).",
+    "Ensure hover states explicitly declare text colors (e.g., hover:bg-[#22D3EE] hover:text-[#071A1F]).",
+    "Components MUST use named exports, Pages MUST use default exports."
+  ]
+}
