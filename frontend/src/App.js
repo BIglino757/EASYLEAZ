@@ -1,53 +1,62 @@
-import { useEffect } from "react";
+import { useEffect, useState, createContext, useContext } from "react";
 import "@/App.css";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import axios from "axios";
+import LandingPage from "@/pages/LandingPage";
+import AdminDashboard from "@/pages/AdminDashboard";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
-const Home = () => {
-  const helloWorldApi = async () => {
+export const AppContext = createContext();
+
+export const useApp = () => useContext(AppContext);
+
+function App() {
+  const [cmsData, setCmsData] = useState({});
+  const [vehicles, setVehicles] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchCMS = async () => {
     try {
-      const response = await axios.get(`${API}/`);
-      console.log(response.data.message);
+      const res = await axios.get(`${API}/cms`);
+      const map = {};
+      res.data.forEach(s => { map[s.section_key] = s.content; });
+      setCmsData(map);
     } catch (e) {
-      console.error(e, `errored out requesting / api`);
+      console.error("CMS fetch error:", e);
+    }
+  };
+
+  const fetchVehicles = async () => {
+    try {
+      const res = await axios.get(`${API}/vehicles`);
+      setVehicles(res.data);
+    } catch (e) {
+      console.error("Vehicles fetch error:", e);
     }
   };
 
   useEffect(() => {
-    helloWorldApi();
+    const init = async () => {
+      try {
+        await axios.post(`${API}/seed`);
+      } catch (e) { /* ignore */ }
+      await Promise.all([fetchCMS(), fetchVehicles()]);
+      setLoading(false);
+    };
+    init();
   }, []);
 
   return (
-    <div>
-      <header className="App-header">
-        <a
-          className="App-link"
-          href="https://emergent.sh"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <img src="https://avatars.githubusercontent.com/in/1201222?s=120&u=2686cf91179bbafbc7a71bfbc43004cf9ae1acea&v=4" />
-        </a>
-        <p className="mt-5">Building something incredible ~!</p>
-      </header>
-    </div>
-  );
-};
-
-function App() {
-  return (
-    <div className="App">
+    <AppContext.Provider value={{ cmsData, vehicles, loading, API, fetchCMS, fetchVehicles }}>
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Home />}>
-            <Route index element={<Home />} />
-          </Route>
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/admin" element={<AdminDashboard />} />
         </Routes>
       </BrowserRouter>
-    </div>
+    </AppContext.Provider>
   );
 }
 
