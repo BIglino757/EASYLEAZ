@@ -11,7 +11,7 @@ const SectionEditor = ({ section, token, API }) => {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [expanded, setExpanded] = useState(false);
-  const headers = { "x-admin-token": token };
+  const headers = token.length > 30 ? { Authorization: `Bearer ${token}` } : { "x-admin-token": token };
 
   const handleSave = async () => {
     setSaving(true);

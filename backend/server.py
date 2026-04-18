@@ -1,14 +1,22 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Depends, Header
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, Header, UploadFile, File, Form, Query
+from fastapi.responses import FileResponse
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 import os
 import logging
+import shutil
 from pathlib import Path
 from pydantic import BaseModel, Field, ConfigDict
-from typing import List, Optional, Any
+from typing import List, Optional
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
+import jwt
+import bcrypt
+import aiofiles
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -20,7 +28,44 @@ db = client[os.environ['DB_NAME']]
 app = FastAPI()
 api_router = APIRouter(prefix="/api")
 
+JWT_SECRET = os.environ.get('JWT_SECRET', 'easyleaz_jwt_secret_2024_x9k2m')
+JWT_ALGORITHM = "HS256"
+JWT_EXPIRATION_HOURS = 24
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'easyleaz2024')
+UPLOAD_DIR = ROOT_DIR / 'uploads'
+UPLOAD_DIR.mkdir(exist_ok=True)
+MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
+ALLOWED_EXTENSIONS = {'.pdf', '.jpg', '.jpeg', '.png'}
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
+# ─── JWT Helpers ───
+
+def create_jwt_token(data: dict) -> str:
+    payload = {**data, "exp": datetime.now(timezone.utc) + timedelta(hours=JWT_EXPIRATION_HOURS)}
+    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
+
+def decode_jwt_token(token: str) -> dict:
+    try:
+        return jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token expiré")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Token invalide")
+
+async def get_current_admin(authorization: str = Header(None), x_admin_token: str = Header(None)):
+    # Support both JWT Bearer and legacy x-admin-token
+    if authorization and authorization.startswith("Bearer "):
+        token = authorization.split(" ")[1]
+        payload = decode_jwt_token(token)
+        admin = await db.admin_users.find_one({"id": payload.get("sub")}, {"_id": 0})
+        if not admin:
+            raise HTTPException(status_code=401, detail="Admin non trouvé")
+        return admin
+    if x_admin_token == ADMIN_PASSWORD:
+        return {"id": "legacy", "email": "admin@easyleaz.ch", "name": "Admin"}
+    raise HTTPException(status_code=401, detail="Non autorisé")
 
 # ─── Models ───
 
@@ -65,46 +110,20 @@ class VehicleUpdate(BaseModel):
     badge: Optional[str] = None
     status: Optional[str] = None
 
-class CMSContent(BaseModel):
-    model_config = ConfigDict(extra="ignore")
-    section_key: str
-    content: dict
-    updated_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
-
 class CMSContentUpdate(BaseModel):
     content: dict
 
-class LeasingRequest(BaseModel):
-    model_config = ConfigDict(extra="ignore")
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    first_name: str
-    last_name: str
-    phone: str
-    email: str
-    income: str = ""
-    professional_status: str = ""
-    desired_vehicle: str = ""
-    status: str = "pending"
-    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
-
-class LeasingRequestCreate(BaseModel):
-    first_name: str
-    last_name: str
-    phone: str
-    email: str
-    income: str = ""
-    professional_status: str = ""
-    desired_vehicle: str = ""
-
 class AdminLogin(BaseModel):
+    email: str
     password: str
 
-# ─── Auth ───
+class AdminRegister(BaseModel):
+    email: str
+    password: str
+    name: str
 
-async def verify_admin(x_admin_token: str = Header(None)):
-    if x_admin_token != ADMIN_PASSWORD:
-        raise HTTPException(status_code=401, detail="Non autorisé")
-    return True
+class StatusUpdate(BaseModel):
+    status: str
 
 # ─── Health ───
 
@@ -112,13 +131,297 @@ async def verify_admin(x_admin_token: str = Header(None)):
 async def root():
     return {"message": "EasyLeaz API"}
 
-# ─── Admin Auth ───
+# ─── Auth ───
+
+@api_router.post("/auth/register")
+async def register_admin(data: AdminRegister):
+    existing = await db.admin_users.count_documents({})
+    if existing > 0:
+        raise HTTPException(status_code=400, detail="Un compte admin existe déjà")
+    hashed = bcrypt.hashpw(data.password.encode(), bcrypt.gensalt()).decode()
+    admin = {"id": str(uuid.uuid4()), "email": data.email, "password": hashed, "name": data.name, "created_at": datetime.now(timezone.utc).isoformat()}
+    await db.admin_users.insert_one(admin)
+    token = create_jwt_token({"sub": admin["id"], "email": admin["email"]})
+    return {"success": True, "token": token, "admin": {"id": admin["id"], "email": admin["email"], "name": admin["name"]}}
+
+@api_router.post("/auth/login")
+async def login_admin(data: AdminLogin):
+    admin = await db.admin_users.find_one({"email": data.email}, {"_id": 0})
+    if admin and bcrypt.checkpw(data.password.encode(), admin["password"].encode()):
+        token = create_jwt_token({"sub": admin["id"], "email": admin["email"]})
+        return {"success": True, "token": token, "admin": {"id": admin["id"], "email": admin["email"], "name": admin["name"]}}
+    raise HTTPException(status_code=401, detail="Identifiants incorrects")
 
 @api_router.post("/admin/login")
-async def admin_login(data: AdminLogin):
-    if data.password == ADMIN_PASSWORD:
+async def admin_login_legacy(data: dict):
+    password = data.get("password", "")
+    if password == ADMIN_PASSWORD:
+        admin = await db.admin_users.find_one({}, {"_id": 0})
+        if admin:
+            token = create_jwt_token({"sub": admin["id"], "email": admin["email"]})
+            return {"success": True, "token": token}
         return {"success": True, "token": ADMIN_PASSWORD}
     raise HTTPException(status_code=401, detail="Mot de passe incorrect")
+
+@api_router.get("/auth/me")
+async def get_current_admin_info(admin: dict = Depends(get_current_admin)):
+    return {"id": admin.get("id"), "email": admin.get("email"), "name": admin.get("name", "Admin")}
+
+@api_router.post("/auth/seed")
+async def seed_admin():
+    existing = await db.admin_users.count_documents({})
+    if existing == 0:
+        hashed = bcrypt.hashpw("easyleaz2024".encode(), bcrypt.gensalt()).decode()
+        admin = {"id": str(uuid.uuid4()), "email": "admin@easyleaz.ch", "password": hashed, "name": "Admin EasyLeaz", "created_at": datetime.now(timezone.utc).isoformat()}
+        await db.admin_users.insert_one(admin)
+        return {"success": True, "message": "Admin créé: admin@easyleaz.ch / easyleaz2024"}
+    return {"success": True, "message": "Admin existe déjà"}
+
+# ─── File Helpers ───
+
+def validate_file(file: UploadFile):
+    ext = Path(file.filename).suffix.lower()
+    if ext not in ALLOWED_EXTENSIONS:
+        raise HTTPException(status_code=400, detail=f"Type de fichier non autorisé: {ext}. Formats acceptés: PDF, JPG, PNG")
+    return ext
+
+async def save_upload(file: UploadFile, doc_type: str) -> dict:
+    ext = validate_file(file)
+    file_id = str(uuid.uuid4())
+    filename = f"{file_id}{ext}"
+    filepath = UPLOAD_DIR / filename
+    content = await file.read()
+    if len(content) > MAX_FILE_SIZE:
+        raise HTTPException(status_code=400, detail=f"Fichier trop volumineux (max 5MB): {file.filename}")
+    async with aiofiles.open(filepath, 'wb') as f:
+        await f.write(content)
+    return {"id": file_id, "type": doc_type, "original_name": file.filename, "file_path": str(filepath), "filename": filename, "size": len(content), "created_at": datetime.now(timezone.utc).isoformat()}
+
+# ─── Email Notification ───
+
+def send_lead_notification(lead: dict):
+    smtp_host = os.environ.get('SMTP_HOST', '')
+    smtp_port = int(os.environ.get('SMTP_PORT', '587'))
+    smtp_user = os.environ.get('SMTP_USER', '')
+    smtp_pass = os.environ.get('SMTP_PASS', '')
+    smtp_from = os.environ.get('SMTP_FROM', '')
+    notification_email = os.environ.get('NOTIFICATION_EMAIL', '')
+    if not all([smtp_host, smtp_user, smtp_pass, notification_email]):
+        logger.info("SMTP non configuré, notification ignorée")
+        return
+    try:
+        msg = MIMEMultipart()
+        msg['From'] = smtp_from or smtp_user
+        msg['To'] = notification_email
+        msg['Subject'] = f"Nouvelle demande de leasing - {lead.get('first_name', '')} {lead.get('last_name', '')}"
+        body = f"""Nouvelle demande de leasing reçue :
+
+Nom : {lead.get('first_name', '')} {lead.get('last_name', '')}
+Email : {lead.get('email', '')}
+Téléphone : {lead.get('phone', '')}
+Véhicule souhaité : {lead.get('desired_vehicle', 'Non spécifié')}
+Revenus : {lead.get('annual_income', '')}
+Situation : {lead.get('professional_status', '')}
+
+Consultez le CRM pour plus de détails."""
+        msg.attach(MIMEText(body, 'plain'))
+        with smtplib.SMTP(smtp_host, smtp_port) as server:
+            server.starttls()
+            server.login(smtp_user, smtp_pass)
+            server.send_message(msg)
+        logger.info(f"Notification envoyée pour lead {lead.get('id', '')}")
+    except Exception as e:
+        logger.error(f"Erreur envoi email: {e}")
+
+# ─── Leads API ───
+
+@api_router.post("/leads")
+async def create_lead(
+    first_name: str = Form(...),
+    last_name: str = Form(...),
+    phone: str = Form(...),
+    email: str = Form(...),
+    marital_status: str = Form(""),
+    nationality: str = Form(""),
+    birth_date: str = Form(""),
+    address: str = Form(""),
+    residence_permit: str = Form(""),
+    children_count: str = Form(""),
+    housing_cost: str = Form(""),
+    employment_date: str = Form(""),
+    annual_income: str = Form(""),
+    professional_status: str = Form(""),
+    desired_vehicle: str = Form(""),
+    identity_document: UploadFile = File(None),
+    salary_slips: List[UploadFile] = File(None),
+):
+    # Validate email format
+    if "@" not in email or "." not in email:
+        raise HTTPException(status_code=400, detail="Format d'email invalide")
+
+    lead_id = str(uuid.uuid4())
+    documents = []
+
+    # Handle identity document
+    if identity_document and identity_document.filename:
+        doc = await save_upload(identity_document, "identity")
+        doc["lead_id"] = lead_id
+        documents.append(doc)
+
+    # Handle salary slips
+    if salary_slips:
+        for slip in salary_slips:
+            if slip and slip.filename:
+                doc = await save_upload(slip, "salary")
+                doc["lead_id"] = lead_id
+                documents.append(doc)
+
+    lead = {
+        "id": lead_id,
+        "first_name": first_name,
+        "last_name": last_name,
+        "email": email,
+        "phone": phone,
+        "marital_status": marital_status,
+        "nationality": nationality,
+        "birth_date": birth_date,
+        "address": address,
+        "residence_permit": residence_permit,
+        "children_count": children_count,
+        "housing_cost": housing_cost,
+        "employment_date": employment_date,
+        "annual_income": annual_income,
+        "professional_status": professional_status,
+        "desired_vehicle": desired_vehicle,
+        "status": "pending",
+        "documents": [{"id": d["id"], "type": d["type"], "original_name": d["original_name"], "filename": d["filename"], "size": d["size"], "created_at": d["created_at"]} for d in documents],
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+    await db.leads.insert_one(lead)
+    if documents:
+        await db.documents.insert_many(documents)
+
+    # Try to send email notification in background
+    try:
+        send_lead_notification(lead)
+    except Exception:
+        pass
+
+    return {"success": True, "id": lead_id, "message": "Demande envoyée avec succès"}
+
+# Keep backward compat for old form
+@api_router.post("/leasing-requests")
+async def create_leasing_request_compat(data: dict):
+    lead_id = str(uuid.uuid4())
+    lead = {
+        "id": lead_id,
+        "first_name": data.get("first_name", ""),
+        "last_name": data.get("last_name", ""),
+        "email": data.get("email", ""),
+        "phone": data.get("phone", ""),
+        "marital_status": data.get("marital_status", ""),
+        "nationality": data.get("nationality", ""),
+        "birth_date": data.get("birth_date", ""),
+        "address": data.get("address", ""),
+        "residence_permit": data.get("residence_permit", ""),
+        "children_count": data.get("children_count", ""),
+        "housing_cost": data.get("housing_cost", ""),
+        "employment_date": data.get("employment_date", ""),
+        "annual_income": data.get("income", data.get("annual_income", "")),
+        "professional_status": data.get("professional_status", ""),
+        "desired_vehicle": data.get("desired_vehicle", ""),
+        "status": "pending",
+        "documents": [],
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.leads.insert_one(lead)
+    return {"success": True, "id": lead_id}
+
+@api_router.get("/leads")
+async def get_leads(
+    admin: dict = Depends(get_current_admin),
+    status: Optional[str] = Query(None),
+    search: Optional[str] = Query(None),
+    sort: str = Query("newest"),
+):
+    query = {}
+    if status and status != "all":
+        query["status"] = status
+    if search:
+        query["$or"] = [
+            {"first_name": {"$regex": search, "$options": "i"}},
+            {"last_name": {"$regex": search, "$options": "i"}},
+            {"email": {"$regex": search, "$options": "i"}},
+            {"phone": {"$regex": search, "$options": "i"}},
+        ]
+    sort_dir = -1 if sort == "newest" else 1
+    leads = await db.leads.find(query, {"_id": 0}).sort("created_at", sort_dir).to_list(1000)
+    return leads
+
+@api_router.get("/leads/stats")
+async def get_leads_stats(admin: dict = Depends(get_current_admin)):
+    total = await db.leads.count_documents({})
+    pending = await db.leads.count_documents({"status": "pending"})
+    approved = await db.leads.count_documents({"status": "approved"})
+    rejected = await db.leads.count_documents({"status": "rejected"})
+    recent = await db.leads.find({}, {"_id": 0, "id": 1, "first_name": 1, "last_name": 1, "status": 1, "created_at": 1, "desired_vehicle": 1}).sort("created_at", -1).to_list(5)
+    return {"total": total, "pending": pending, "approved": approved, "rejected": rejected, "recent": recent}
+
+@api_router.get("/leads/{lead_id}")
+async def get_lead_detail(lead_id: str, admin: dict = Depends(get_current_admin)):
+    lead = await db.leads.find_one({"id": lead_id}, {"_id": 0})
+    if not lead:
+        raise HTTPException(status_code=404, detail="Demande non trouvée")
+    return lead
+
+@api_router.patch("/leads/{lead_id}")
+async def update_lead_status(lead_id: str, data: StatusUpdate, admin: dict = Depends(get_current_admin)):
+    if data.status not in ("pending", "approved", "rejected"):
+        raise HTTPException(status_code=400, detail="Statut invalide")
+    result = await db.leads.update_one({"id": lead_id}, {"$set": {"status": data.status}})
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Demande non trouvée")
+    lead = await db.leads.find_one({"id": lead_id}, {"_id": 0})
+    return lead
+
+@api_router.delete("/leads/{lead_id}")
+async def delete_lead(lead_id: str, admin: dict = Depends(get_current_admin)):
+    # Delete associated files
+    docs = await db.documents.find({"lead_id": lead_id}).to_list(100)
+    for doc in docs:
+        filepath = Path(doc.get("file_path", ""))
+        if filepath.exists():
+            filepath.unlink()
+    await db.documents.delete_many({"lead_id": lead_id})
+    result = await db.leads.delete_one({"id": lead_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Demande non trouvée")
+    return {"success": True}
+
+@api_router.get("/leads/{lead_id}/documents/{doc_id}/download")
+async def download_document(lead_id: str, doc_id: str, admin: dict = Depends(get_current_admin)):
+    doc = await db.documents.find_one({"id": doc_id, "lead_id": lead_id}, {"_id": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document non trouvé")
+    filepath = Path(doc.get("file_path", ""))
+    if not filepath.exists():
+        raise HTTPException(status_code=404, detail="Fichier non trouvé sur le serveur")
+    return FileResponse(str(filepath), filename=doc.get("original_name", "document"), media_type="application/octet-stream")
+
+# Keep old leasing-requests GET for backward compat
+@api_router.get("/leasing-requests")
+async def get_leasing_requests_compat(admin: dict = Depends(get_current_admin)):
+    leads = await db.leads.find({}, {"_id": 0}).sort("created_at", -1).to_list(1000)
+    return leads
+
+@api_router.put("/leasing-requests/{request_id}")
+async def update_leasing_request_compat(request_id: str, status: str = Query(...), admin: dict = Depends(get_current_admin)):
+    await db.leads.update_one({"id": request_id}, {"$set": {"status": status}})
+    doc = await db.leads.find_one({"id": request_id}, {"_id": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Demande non trouvée")
+    return doc
 
 # ─── Vehicles ───
 
@@ -128,19 +431,19 @@ async def get_vehicles():
     return vehicles
 
 @api_router.get("/vehicles/all", response_model=List[Vehicle])
-async def get_all_vehicles(auth: bool = Depends(verify_admin)):
+async def get_all_vehicles(admin: dict = Depends(get_current_admin)):
     vehicles = await db.vehicles.find({}, {"_id": 0}).to_list(100)
     return vehicles
 
 @api_router.post("/vehicles", response_model=Vehicle)
-async def create_vehicle(data: VehicleCreate, auth: bool = Depends(verify_admin)):
+async def create_vehicle(data: VehicleCreate, admin: dict = Depends(get_current_admin)):
     vehicle = Vehicle(**data.model_dump())
     doc = vehicle.model_dump()
     await db.vehicles.insert_one(doc)
     return vehicle
 
 @api_router.put("/vehicles/{vehicle_id}", response_model=Vehicle)
-async def update_vehicle(vehicle_id: str, data: VehicleUpdate, auth: bool = Depends(verify_admin)):
+async def update_vehicle(vehicle_id: str, data: VehicleUpdate, admin: dict = Depends(get_current_admin)):
     update_data = {k: v for k, v in data.model_dump().items() if v is not None}
     if not update_data:
         raise HTTPException(status_code=400, detail="Aucune donnée à mettre à jour")
@@ -151,7 +454,7 @@ async def update_vehicle(vehicle_id: str, data: VehicleUpdate, auth: bool = Depe
     return vehicle
 
 @api_router.delete("/vehicles/{vehicle_id}")
-async def delete_vehicle(vehicle_id: str, auth: bool = Depends(verify_admin)):
+async def delete_vehicle(vehicle_id: str, admin: dict = Depends(get_current_admin)):
     result = await db.vehicles.delete_one({"id": vehicle_id})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Véhicule non trouvé")
@@ -160,46 +463,13 @@ async def delete_vehicle(vehicle_id: str, auth: bool = Depends(verify_admin)):
 # ─── CMS ───
 
 DEFAULT_CMS = {
-    "hero": {
-        "title": "LEASING AUTOMOBILE PREMIUM À GENÈVE",
-        "subtitle": "Neuf & occasion • Réponse rapide • Accompagnement complet",
-        "cta_primary": "Demande de leasing",
-        "cta_secondary": "Prendre rendez-vous",
-        "background_image": "https://images.unsplash.com/photo-1617814076231-2c58846db944?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA3MDB8MHwxfHNlYXJjaHwyfHxtZXJjZWRlcyUyMGFtZyUyMGRhcmt8ZW58MHx8fHwxNzc0MTEwNTk1fDA&ixlib=rb-4.1.0&q=85"
-    },
-    "vehicles": {
-        "title": "NOS VÉHICULES",
-        "subtitle": "Une sélection premium de véhicules neufs et d'occasion"
-    },
-    "process": {
-        "title": "COMMENT ÇA MARCHE",
-        "subtitle": "Un processus simple et rapide en 3 étapes",
-        "steps": [
-            {"number": "01", "title": "Choix du véhicule", "description": "Parcourez notre sélection ou indiquez-nous le véhicule de vos rêves."},
-            {"number": "02", "title": "Demande de leasing", "description": "Remplissez votre demande en quelques minutes. Nous nous occupons du reste."},
-            {"number": "03", "title": "Validation rapide", "description": "Recevez une réponse rapide et prenez le volant de votre nouveau véhicule."}
-        ]
-    },
-    "leasing_form": {
-        "title": "FAITES VOTRE DEMANDE DE LEASING",
-        "subtitle": "En quelques minutes, soumettez votre dossier et recevez une réponse rapide."
-    },
-    "appointment": {
-        "title": "PARLER AVEC UN EXPERT EASYLEAZ",
-        "subtitle": "Prenez rendez-vous avec l'un de nos conseillers spécialisés",
-        "calendly_url": ""
-    },
-    "contact": {
-        "title": "CONTACTEZ-NOUS",
-        "phone": "0799493229",
-        "location": "Genève",
-        "instagram_url": "https://www.instagram.com/easyleazge?igsh=dnQ5ODBxcGthMWp2",
-        "whatsapp": "0799493229"
-    },
-    "navbar": {
-        "logo_text": "EASY LEAZ",
-        "links": ["Véhicules", "Processus", "Demande", "Contact"]
-    }
+    "hero": {"title": "LEASING AUTOMOBILE PREMIUM À GENÈVE", "subtitle": "Neuf & occasion • Réponse rapide • Accompagnement complet", "cta_primary": "Demande de leasing", "cta_secondary": "Prendre rendez-vous", "background_image": "https://images.unsplash.com/photo-1617814076231-2c58846db944?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA3MDB8MHwxfHNlYXJjaHwyfHxtZXJjZWRlcyUyMGFtZyUyMGRhcmt8ZW58MHx8fHwxNzc0MTEwNTk1fDA&ixlib=rb-4.1.0&q=85"},
+    "vehicles": {"title": "NOS VÉHICULES", "subtitle": "Une sélection premium de véhicules neufs et d'occasion"},
+    "process": {"title": "COMMENT ÇA MARCHE", "subtitle": "Un processus simple et rapide en 3 étapes", "steps": [{"number": "01", "title": "Choix du véhicule", "description": "Parcourez notre sélection ou indiquez-nous le véhicule de vos rêves."}, {"number": "02", "title": "Demande de leasing", "description": "Remplissez votre demande en quelques minutes. Nous nous occupons du reste."}, {"number": "03", "title": "Validation rapide", "description": "Recevez une réponse rapide et prenez le volant de votre nouveau véhicule."}]},
+    "leasing_form": {"title": "FAITES VOTRE DEMANDE DE LEASING", "subtitle": "En quelques minutes, soumettez votre dossier et recevez une réponse rapide."},
+    "appointment": {"title": "PARLER AVEC UN EXPERT EASYLEAZ", "subtitle": "Prenez rendez-vous avec l'un de nos conseillers spécialisés", "calendly_url": ""},
+    "contact": {"title": "CONTACTEZ-NOUS", "phone": "0799493229", "location": "Genève", "instagram_url": "https://www.instagram.com/easyleazge?igsh=dnQ5ODBxcGthMWp2", "whatsapp": "0799493229"},
+    "navbar": {"logo_text": "EASY LEAZ", "links": ["Véhicules", "Processus", "Demande", "Contact"]}
 }
 
 @api_router.get("/cms/{section_key}")
@@ -225,35 +495,13 @@ async def get_all_cms():
     return sections
 
 @api_router.put("/cms/{section_key}")
-async def update_cms_section(section_key: str, data: CMSContentUpdate, auth: bool = Depends(verify_admin)):
+async def update_cms_section(section_key: str, data: CMSContentUpdate, admin: dict = Depends(get_current_admin)):
     update = {"content": data.content, "updated_at": datetime.now(timezone.utc).isoformat()}
-    result = await db.cms_content.update_one({"section_key": section_key}, {"$set": update}, upsert=True)
+    await db.cms_content.update_one({"section_key": section_key}, {"$set": update}, upsert=True)
     doc = await db.cms_content.find_one({"section_key": section_key}, {"_id": 0})
     return doc
 
-# ─── Leasing Requests ───
-
-@api_router.post("/leasing-requests", response_model=LeasingRequest)
-async def create_leasing_request(data: LeasingRequestCreate):
-    req = LeasingRequest(**data.model_dump())
-    doc = req.model_dump()
-    await db.leasing_requests.insert_one(doc)
-    return req
-
-@api_router.get("/leasing-requests", response_model=List[LeasingRequest])
-async def get_leasing_requests(auth: bool = Depends(verify_admin)):
-    requests = await db.leasing_requests.find({}, {"_id": 0}).to_list(1000)
-    return requests
-
-@api_router.put("/leasing-requests/{request_id}")
-async def update_leasing_request_status(request_id: str, status: str, auth: bool = Depends(verify_admin)):
-    await db.leasing_requests.update_one({"id": request_id}, {"$set": {"status": status}})
-    doc = await db.leasing_requests.find_one({"id": request_id}, {"_id": 0})
-    if not doc:
-        raise HTTPException(status_code=404, detail="Demande non trouvée")
-    return doc
-
-# ─── Seed Data ───
+# ─── Seed ───
 
 @api_router.post("/seed")
 async def seed_data():
@@ -272,6 +520,11 @@ async def seed_data():
     if cms_count == 0:
         for key, content in DEFAULT_CMS.items():
             await db.cms_content.insert_one({"section_key": key, "content": content, "updated_at": datetime.now(timezone.utc).isoformat()})
+    # Seed admin
+    admin_count = await db.admin_users.count_documents({})
+    if admin_count == 0:
+        hashed = bcrypt.hashpw("easyleaz2024".encode(), bcrypt.gensalt()).decode()
+        await db.admin_users.insert_one({"id": str(uuid.uuid4()), "email": "admin@easyleaz.ch", "password": hashed, "name": "Admin EasyLeaz", "created_at": datetime.now(timezone.utc).isoformat()})
     return {"success": True, "message": "Données initiales créées"}
 
 app.include_router(api_router)
@@ -283,9 +536,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
 
 @app.on_event("shutdown")
 async def shutdown_db_client():

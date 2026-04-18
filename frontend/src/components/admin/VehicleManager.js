@@ -19,7 +19,7 @@ export const VehicleManager = ({ token }) => {
     transmission: "Automatique", price: 0, monthly_payment: 0, image_url: "", badge: ""
   });
 
-  const headers = { "x-admin-token": token };
+  const headers = token.length > 30 ? { Authorization: `Bearer ${token}` } : { "x-admin-token": token };
 
   const fetchVehicles = useCallback(async () => {
     try {
