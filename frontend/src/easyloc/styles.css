@@ -52,9 +52,9 @@
   min-height: 100vh;
 }
 
-.easyloc-scope * {
-  margin: 0;
-  padding: 0;
+.easyloc-scope *,
+.easyloc-scope *::before,
+.easyloc-scope *::after {
   box-sizing: border-box;
 }
 

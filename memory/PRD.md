@@ -42,3 +42,42 @@ Premium automotive leasing landing page + CRM for EasyLeaz, Geneva. Ultra-premiu
 1. Configurer les identifiants SMTP Infomaniak dans .env pour activer les emails
 2. Remplacer les images stock par les photos véhicules du client
 3. Ajouter des rapports PDF / graphiques au dashboard
+
+---
+
+## 🆕 Intégration EASYLOC — "2 sites en 1" (Avril 2026)
+
+### Nouveau périmètre
+Intégration du projet EASYLOC (cloné depuis repo GitHub externe) comme seconde page `/easyloc` dans le même domaine que EasyLeaz. Les deux sites cohabitent sans se polluer mutuellement.
+
+### Architecture adoptée
+
+**Backend (`/app/backend/server.py`)**
+- Nouveau router `easyloc_router` avec préfixe `/api/easyloc/*`
+- Collections MongoDB séparées : `easyloc_vehicles`, `easyloc_reservations`, `easyloc_content`
+- Seed automatique : 9 véhicules premium + 8 sections de contenu au démarrage
+- **Auth unifiée** : les routes admin EasyLoc utilisent `get_current_admin` d'EasyLeaz → un seul JWT pour les 2 panneaux
+
+**Frontend (`/app/frontend/src/easyloc/`)**
+- Dossier isolé avec composants EASYLOC copiés tels quels (style préservé à 100%)
+- `context.js` — Provider local avec `API=${BACKEND_URL}/api/easyloc`
+- `styles.css` — CSS EASYLOC scopé sous `.easyloc-scope` (body/html/vars HSL shadcn) pour éviter la contamination
+- `EasyLocApp.js` — wrapper exposant `<EasyLocLanding />` et `<EasyLocAdmin />`
+- Routes ajoutées dans `App.js` : `/easyloc`, `/easyloc/admin`
+
+**CTA EasyLeaz → EasyLoc**
+- `Navbar.js` : mini CTA "EASYLOC" (lien header discret doré, `data-testid="nav-cta-easyloc"`)
+- `HeroSection.js` : 3e bouton "Louer un véhicule" (`data-testid="hero-cta-easyloc"`)
+- `EasyLocSwitchSection.js` : nouvelle section dédiée après la FAQ (visuel + CTA `easyloc-switch-cta`)
+- Mobile menu : bouton "Louer un véhicule → EasyLoc"
+
+### Tests réalisés (iteration_6.json)
+- ✅ Backend : 17/17 pytest passés
+- ✅ Frontend : home EasyLeaz intacte, `/easyloc` rend parfaitement, admin unifié fonctionne
+- ✅ Isolation CSS vérifiée — aucune régression sur EasyLeaz
+- ✅ Fix CSS : `.easyloc-scope *` réduit à `box-sizing` uniquement pour ne pas écraser Tailwind
+
+### Backlog / Améliorations futures
+- [P2] SMTP Infomaniak (en attente des credentials user) — déjà câblé dans le code
+- [P2] Interface d'upload d'images véhicule pour EasyLoc (actuellement URL d'image simple)
+- [P3] Option pour que l'admin EasyLeaz gère aussi EasyLoc via des onglets dans AdminDashboard (cohérence UX)
