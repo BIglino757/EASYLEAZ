@@ -4,7 +4,7 @@ import axios from "axios";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Loader2, Clock, CheckCircle, XCircle, Search, User, Mail, Phone, Car, MapPin, FileText, Download, Trash2, Calendar, Home, Baby, Briefcase, CreditCard, Flag, Heart, Shield, ChevronLeft } from "lucide-react";
+import { Loader2, Clock, CheckCircle, XCircle, Search, User, Mail, Phone, Car, MapPin, FileText, Download, Trash2, Calendar, Home, Baby, Briefcase, CreditCard, Flag, Heart, Shield, ChevronLeft, FileDown } from "lucide-react";
 
 const statusConfig = {
   pending: { bg: "bg-yellow-500/10", border: "border-yellow-500/20", text: "text-yellow-400", icon: Clock, label: "En attente" },
@@ -20,6 +20,9 @@ export const LeadsManager = ({ token }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedLead, setSelectedLead] = useState(null);
   const [detailOpen, setDetailOpen] = useState(false);
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [exporting, setExporting] = useState(false);
 
   const headers = { Authorization: `Bearer ${token}` };
 
@@ -65,6 +68,30 @@ export const LeadsManager = ({ token }) => {
     window.open(`${API}/leads/${leadId}/documents/${docId}/download?token=${token}`, "_blank");
   };
 
+  const exportCSV = async () => {
+    setExporting(true);
+    try {
+      const params = new URLSearchParams();
+      if (statusFilter !== "all") params.append("status", statusFilter);
+      if (dateFrom) params.append("date_from", dateFrom);
+      if (dateTo) params.append("date_to", dateTo);
+      const res = await axios.get(`${API}/leads/export?${params.toString()}`, {
+        headers, responseType: "blob",
+      });
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      const disposition = res.headers["content-disposition"] || "";
+      const filename = disposition.match(/filename=(.+)/)?.[1] || "easyleaz_leads.csv";
+      link.setAttribute("download", filename);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (e) { console.error("Export error:", e); }
+    setExporting(false);
+  };
+
   if (loading) return <div className="flex justify-center py-20"><Loader2 className="animate-spin text-[#22D3EE]" size={32} /></div>;
 
   return (
@@ -88,6 +115,23 @@ export const LeadsManager = ({ token }) => {
             </SelectContent>
           </Select>
         </div>
+      </div>
+
+      {/* Export bar */}
+      <div className="flex flex-wrap items-center gap-3 mb-4 p-3 rounded-xl bg-[#0E2F36]/20 border border-[#22D3EE]/5">
+        <span className="font-inter text-xs text-[#E6F7FF]/40 mr-1">Exporter :</span>
+        <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="bg-[#0E2F36]/50 border-[#22D3EE]/15 text-[#E6F7FF] h-8 w-36 rounded-lg text-xs" placeholder="Du" data-testid="export-date-from" />
+        <span className="font-inter text-xs text-[#E6F7FF]/30">au</span>
+        <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="bg-[#0E2F36]/50 border-[#22D3EE]/15 text-[#E6F7FF] h-8 w-36 rounded-lg text-xs" placeholder="Au" data-testid="export-date-to" />
+        <button
+          onClick={exportCSV}
+          disabled={exporting}
+          className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-[#22D3EE]/10 border border-[#22D3EE]/20 text-xs text-[#22D3EE] font-inter font-medium hover:bg-[#22D3EE]/20 transition-colors duration-200 disabled:opacity-50"
+          data-testid="export-csv-button"
+        >
+          {exporting ? <Loader2 size={12} className="animate-spin" /> : <FileDown size={12} />}
+          Export CSV
+        </button>
       </div>
 
       <span className="font-inter text-xs text-[#E6F7FF]/30 block mb-4">{leads.length} résultat(s)</span>

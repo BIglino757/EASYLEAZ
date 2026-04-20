@@ -85,12 +85,12 @@ export const HeroSection = () => {
             <ChevronRight size={18} />
           </button>
           <button
-            onClick={() => scrollTo("#rendez-vous")}
+            onClick={() => scrollTo("#contact")}
             className="btn-outline-easyleaz px-8 py-4 rounded-full text-sm md:text-base font-medium tracking-wide flex items-center gap-2"
             data-testid="hero-cta-secondary"
           >
             <Calendar size={18} />
-            {hero.cta_secondary || "Prendre rendez-vous"}
+            {hero.cta_secondary || "Nous contacter"}
           </button>
         </motion.div>
 

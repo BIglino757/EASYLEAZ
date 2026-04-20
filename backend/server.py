@@ -1,5 +1,5 @@
 from fastapi import FastAPI, APIRouter, HTTPException, Depends, Header, UploadFile, File, Form, Query
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -15,6 +15,8 @@ import jwt
 import bcrypt
 import aiofiles
 import smtplib
+import csv
+import io
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
@@ -199,39 +201,108 @@ async def save_upload(file: UploadFile, doc_type: str) -> dict:
 
 # ─── Email Notification ───
 
-def send_lead_notification(lead: dict):
+def _get_smtp_config():
     smtp_host = os.environ.get('SMTP_HOST', '')
     smtp_port = int(os.environ.get('SMTP_PORT', '587'))
     smtp_user = os.environ.get('SMTP_USER', '')
     smtp_pass = os.environ.get('SMTP_PASS', '')
-    smtp_from = os.environ.get('SMTP_FROM', '')
+    smtp_from = os.environ.get('SMTP_FROM', '') or smtp_user
     notification_email = os.environ.get('NOTIFICATION_EMAIL', '')
-    if not all([smtp_host, smtp_user, smtp_pass, notification_email]):
-        logger.info("SMTP non configuré, notification ignorée")
-        return
-    try:
-        msg = MIMEMultipart()
-        msg['From'] = smtp_from or smtp_user
-        msg['To'] = notification_email
-        msg['Subject'] = f"Nouvelle demande de leasing - {lead.get('first_name', '')} {lead.get('last_name', '')}"
-        body = f"""Nouvelle demande de leasing reçue :
+    if not all([smtp_host, smtp_user, smtp_pass]):
+        return None
+    return {"host": smtp_host, "port": smtp_port, "user": smtp_user, "pass": smtp_pass, "from": smtp_from, "notification": notification_email}
 
-Nom : {lead.get('first_name', '')} {lead.get('last_name', '')}
+def _send_email(config, to_email, subject, body_html, body_text):
+    try:
+        msg = MIMEMultipart("alternative")
+        msg['From'] = config["from"]
+        msg['To'] = to_email
+        msg['Subject'] = subject
+        msg.attach(MIMEText(body_text, 'plain'))
+        msg.attach(MIMEText(body_html, 'html'))
+        with smtplib.SMTP(config["host"], config["port"]) as server:
+            server.starttls()
+            server.login(config["user"], config["pass"])
+            server.send_message(msg)
+        logger.info(f"Email envoyé à {to_email}: {subject}")
+        return True
+    except Exception as e:
+        logger.error(f"Erreur envoi email à {to_email}: {e}")
+        return False
+
+def send_lead_notification(lead: dict):
+    config = _get_smtp_config()
+    if not config or not config["notification"]:
+        logger.info("SMTP non configuré, notification admin ignorée")
+        return
+    name = f"{lead.get('first_name', '')} {lead.get('last_name', '')}"
+    doc_count = len(lead.get('documents', []))
+    subject = f"Nouvelle demande de leasing - {name}"
+    body_text = f"""Nouvelle demande de leasing reçue :
+
+Nom : {name}
 Email : {lead.get('email', '')}
 Téléphone : {lead.get('phone', '')}
+Nationalité : {lead.get('nationality', '')}
 Véhicule souhaité : {lead.get('desired_vehicle', 'Non spécifié')}
 Revenus : {lead.get('annual_income', '')}
 Situation : {lead.get('professional_status', '')}
+Documents joints : {doc_count}
 
-Consultez le CRM pour plus de détails."""
-        msg.attach(MIMEText(body, 'plain'))
-        with smtplib.SMTP(smtp_host, smtp_port) as server:
-            server.starttls()
-            server.login(smtp_user, smtp_pass)
-            server.send_message(msg)
-        logger.info(f"Notification envoyée pour lead {lead.get('id', '')}")
-    except Exception as e:
-        logger.error(f"Erreur envoi email: {e}")
+Connectez-vous au CRM pour consulter le dossier complet."""
+    body_html = f"""
+<div style="font-family: 'Inter', Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #071A1F; color: #E6F7FF; padding: 32px; border-radius: 16px;">
+  <h2 style="color: #22D3EE; font-size: 18px; margin-bottom: 24px;">Nouvelle demande de leasing</h2>
+  <table style="width: 100%; border-collapse: collapse;">
+    <tr><td style="padding: 8px 0; color: #E6F7FF80; font-size: 13px;">Nom</td><td style="padding: 8px 0; color: #E6F7FF; font-size: 14px;">{name}</td></tr>
+    <tr><td style="padding: 8px 0; color: #E6F7FF80; font-size: 13px;">Email</td><td style="padding: 8px 0; color: #E6F7FF; font-size: 14px;">{lead.get('email', '')}</td></tr>
+    <tr><td style="padding: 8px 0; color: #E6F7FF80; font-size: 13px;">Téléphone</td><td style="padding: 8px 0; color: #E6F7FF; font-size: 14px;">{lead.get('phone', '')}</td></tr>
+    <tr><td style="padding: 8px 0; color: #E6F7FF80; font-size: 13px;">Nationalité</td><td style="padding: 8px 0; color: #E6F7FF; font-size: 14px;">{lead.get('nationality', '')}</td></tr>
+    <tr><td style="padding: 8px 0; color: #E6F7FF80; font-size: 13px;">Véhicule</td><td style="padding: 8px 0; color: #E6F7FF; font-size: 14px;">{lead.get('desired_vehicle', 'Non spécifié')}</td></tr>
+    <tr><td style="padding: 8px 0; color: #E6F7FF80; font-size: 13px;">Revenus</td><td style="padding: 8px 0; color: #E6F7FF; font-size: 14px;">{lead.get('annual_income', '')}</td></tr>
+    <tr><td style="padding: 8px 0; color: #E6F7FF80; font-size: 13px;">Documents</td><td style="padding: 8px 0; color: #E6F7FF; font-size: 14px;">{doc_count} fichier(s)</td></tr>
+  </table>
+  <p style="margin-top: 24px; font-size: 13px; color: #E6F7FF60;">Connectez-vous au CRM pour consulter le dossier complet.</p>
+</div>"""
+    _send_email(config, config["notification"], subject, body_html, body_text)
+
+def send_client_confirmation(lead: dict):
+    config = _get_smtp_config()
+    if not config:
+        logger.info("SMTP non configuré, confirmation client ignorée")
+        return
+    client_email = lead.get('email', '')
+    if not client_email:
+        return
+    name = lead.get('first_name', '')
+    subject = "EasyLeaz - Votre demande de leasing a bien été reçue"
+    body_text = f"""Bonjour {name},
+
+Nous avons bien reçu votre demande de leasing et notre équipe l'examine actuellement.
+
+Véhicule demandé : {lead.get('desired_vehicle', 'Non spécifié')}
+
+Un conseiller EasyLeaz vous contactera dans les plus brefs délais.
+
+Cordialement,
+L'équipe EasyLeaz
+Genève"""
+    body_html = f"""
+<div style="font-family: 'Inter', Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #071A1F; color: #E6F7FF; padding: 32px; border-radius: 16px;">
+  <h2 style="color: #22D3EE; font-size: 20px; margin-bottom: 8px; font-family: 'Cinzel', serif; letter-spacing: 0.1em;">EASY LEAZ</h2>
+  <p style="color: #E6F7FF80; font-size: 12px; margin-bottom: 24px; letter-spacing: 0.05em;">LEASING AUTOMOBILE PREMIUM</p>
+  <hr style="border: none; border-top: 1px solid #22D3EE20; margin-bottom: 24px;" />
+  <p style="font-size: 15px; color: #E6F7FF; margin-bottom: 16px;">Bonjour {name},</p>
+  <p style="font-size: 14px; color: #E6F7FFcc; line-height: 1.6;">Nous avons bien reçu votre demande de leasing et notre équipe l'examine actuellement.</p>
+  <div style="background: #0E2F36; border: 1px solid #22D3EE20; border-radius: 12px; padding: 16px; margin: 20px 0;">
+    <p style="font-size: 12px; color: #22D3EE; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 8px;">Véhicule demandé</p>
+    <p style="font-size: 16px; color: #E6F7FF; font-weight: 600;">{lead.get('desired_vehicle', 'Non spécifié')}</p>
+  </div>
+  <p style="font-size: 14px; color: #E6F7FFcc; line-height: 1.6;">Un conseiller EasyLeaz vous contactera dans les plus brefs délais pour la suite de votre dossier.</p>
+  <hr style="border: none; border-top: 1px solid #22D3EE20; margin: 24px 0;" />
+  <p style="font-size: 12px; color: #E6F7FF50;">Cordialement,<br/>L'équipe EasyLeaz — Genève</p>
+</div>"""
+    _send_email(config, client_email, subject, body_html, body_text)
 
 # ─── Leads API ───
 
@@ -302,9 +373,10 @@ async def create_lead(
     if documents:
         await db.documents.insert_many(documents)
 
-    # Try to send email notification in background
+    # Try to send email notifications
     try:
         send_lead_notification(lead)
+        send_client_confirmation(lead)
     except Exception:
         pass
 
@@ -367,6 +439,46 @@ async def get_leads_stats(admin: dict = Depends(get_current_admin)):
     rejected = await db.leads.count_documents({"status": "rejected"})
     recent = await db.leads.find({}, {"_id": 0, "id": 1, "first_name": 1, "last_name": 1, "status": 1, "created_at": 1, "desired_vehicle": 1}).sort("created_at", -1).to_list(5)
     return {"total": total, "pending": pending, "approved": approved, "rejected": rejected, "recent": recent}
+
+@api_router.get("/leads/export")
+async def export_leads_csv(
+    admin: dict = Depends(get_current_admin),
+    status: Optional[str] = Query(None),
+    date_from: Optional[str] = Query(None),
+    date_to: Optional[str] = Query(None),
+):
+    query = {}
+    if status and status != "all":
+        query["status"] = status
+    if date_from or date_to:
+        date_filter = {}
+        if date_from:
+            date_filter["$gte"] = date_from
+        if date_to:
+            date_filter["$lte"] = date_to + "T23:59:59"
+        if date_filter:
+            query["created_at"] = date_filter
+    leads = await db.leads.find(query, {"_id": 0}).sort("created_at", -1).to_list(10000)
+    output = io.StringIO()
+    writer = csv.writer(output, delimiter=';')
+    writer.writerow(["Nom", "Prénom", "Email", "Téléphone", "Nationalité", "Date naissance", "État civil", "Adresse", "Permis séjour", "Enfants", "Revenus annuels", "Situation pro.", "Coût logement", "Début emploi", "Véhicule souhaité", "Statut", "Documents", "Date soumission"])
+    for lead in leads:
+        doc_count = len(lead.get("documents", []))
+        writer.writerow([
+            lead.get("last_name", ""), lead.get("first_name", ""), lead.get("email", ""),
+            lead.get("phone", ""), lead.get("nationality", ""), lead.get("birth_date", ""),
+            lead.get("marital_status", ""), lead.get("address", ""), lead.get("residence_permit", ""),
+            lead.get("children_count", ""), lead.get("annual_income", ""), lead.get("professional_status", ""),
+            lead.get("housing_cost", ""), lead.get("employment_date", ""), lead.get("desired_vehicle", ""),
+            lead.get("status", ""), str(doc_count), lead.get("created_at", ""),
+        ])
+    output.seek(0)
+    filename = f"easyleaz_leads_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M')}.csv"
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
 
 @api_router.get("/leads/{lead_id}")
 async def get_lead_detail(lead_id: str, admin: dict = Depends(get_current_admin)):

@@ -4,7 +4,6 @@ import { HeroSection } from "@/components/landing/HeroSection";
 import { VehiclesSection } from "@/components/landing/VehiclesSection";
 import { ProcessSection } from "@/components/landing/ProcessSection";
 import { LeasingFormSection } from "@/components/landing/LeasingFormSection";
-import { AppointmentSection } from "@/components/landing/AppointmentSection";
 import { ContactSection } from "@/components/landing/ContactSection";
 import { Footer } from "@/components/landing/Footer";
 
@@ -29,7 +28,6 @@ export default function LandingPage() {
       <VehiclesSection />
       <ProcessSection />
       <LeasingFormSection />
-      <AppointmentSection />
       <ContactSection />
       <Footer />
     </div>

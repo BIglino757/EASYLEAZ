@@ -10,6 +10,7 @@ class EasyLeazAPITester:
         self.base_url = base_url
         self.api_url = f"{base_url}/api"
         self.admin_token = "easyleaz2024"
+        self.jwt_token = None
         self.tests_run = 0
         self.tests_passed = 0
         self.failed_tests = []
@@ -89,6 +90,15 @@ class EasyLeazAPITester:
         data = {"password": self.admin_token}
         return self.run_test("Admin Login", "POST", "admin/login", 200, data)
 
+    def test_jwt_admin_login(self):
+        """Test JWT admin login with email/password"""
+        data = {"email": "admin@easyleaz.ch", "password": "easyleaz2024"}
+        success, response = self.run_test("JWT Admin Login", "POST", "auth/login", 200, data)
+        if success and 'token' in response:
+            self.jwt_token = response['token']
+            return True, response['token']
+        return False, None
+
     def test_admin_login_wrong_password(self):
         """Test admin login with wrong password"""
         data = {"password": "wrongpassword"}
@@ -157,6 +167,98 @@ class EasyLeazAPITester:
             return success, response['id']
         return success, None
 
+    def test_create_lead(self):
+        """Test creating a lead via new endpoint"""
+        # This endpoint expects form data, so we'll test it differently
+        import requests
+        url = f"{self.api_url}/leads"
+        
+        # Prepare form data
+        form_data = {
+            'first_name': 'Test',
+            'last_name': 'Lead',
+            'phone': '+41791234567',
+            'email': 'testlead@example.com',
+            'annual_income': '60000',
+            'professional_status': 'Salarié',
+            'desired_vehicle': 'BMW M4'
+        }
+        
+        self.tests_run += 1
+        print(f"\n🔍 Testing Create Lead (Form Data)...")
+        print(f"   URL: {url}")
+        
+        try:
+            response = requests.post(url, data=form_data, timeout=10)
+            success = response.status_code == 200
+            if success:
+                self.tests_passed += 1
+                print(f"✅ Passed - Status: {response.status_code}")
+                try:
+                    response_data = response.json()
+                    print(f"   Response: {response_data}")
+                    if 'id' in response_data:
+                        return True, response_data['id']
+                    return True, None
+                except:
+                    return True, None
+            else:
+                print(f"❌ Failed - Expected 200, got {response.status_code}")
+                print(f"   Response: {response.text[:200]}...")
+                self.failed_tests.append({
+                    "test": "Create Lead (Form Data)",
+                    "expected": 200,
+                    "actual": response.status_code,
+                    "response": response.text[:200]
+                })
+                return False, None
+        except Exception as e:
+            print(f"❌ Failed - Error: {str(e)}")
+            self.failed_tests.append({
+                "test": "Create Lead (Form Data)",
+                "error": str(e)
+            })
+            return False, None
+
+    def test_export_leads_csv(self):
+        """Test CSV export endpoint"""
+        if not self.jwt_token:
+            print("❌ Skipping CSV export test - no JWT token")
+            return False, None
+        
+        headers = {"Authorization": f"Bearer {self.jwt_token}"}
+        success, _ = self.run_test("Export Leads CSV", "GET", "leads/export", 200, headers=headers)
+        return success, None
+
+    def test_export_leads_csv_with_status_filter(self):
+        """Test CSV export with status filter"""
+        if not self.jwt_token:
+            print("❌ Skipping CSV export test - no JWT token")
+            return False, None
+        
+        headers = {"Authorization": f"Bearer {self.jwt_token}"}
+        success, _ = self.run_test("Export Leads CSV (Status Filter)", "GET", "leads/export?status=pending", 200, headers=headers)
+        return success, None
+
+    def test_export_leads_csv_with_date_filter(self):
+        """Test CSV export with date filter"""
+        if not self.jwt_token:
+            print("❌ Skipping CSV export test - no JWT token")
+            return False, None
+        
+        headers = {"Authorization": f"Bearer {self.jwt_token}"}
+        success, _ = self.run_test("Export Leads CSV (Date Filter)", "GET", "leads/export?date_from=2026-01-01&date_to=2026-12-31", 200, headers=headers)
+        return success, None
+
+    def test_get_leads(self):
+        """Test getting leads (admin only)"""
+        if not self.jwt_token:
+            print("❌ Skipping get leads test - no JWT token")
+            return False, None
+        
+        headers = {"Authorization": f"Bearer {self.jwt_token}"}
+        return self.run_test("Get Leads (Admin)", "GET", "leads", 200, headers=headers)
+
     def test_get_leasing_requests(self):
         """Test getting leasing requests (admin only)"""
         headers = {"x-admin-token": self.admin_token}
@@ -213,6 +315,11 @@ def main():
     tester.test_admin_login()
     tester.test_admin_login_wrong_password()
     
+    # JWT Authentication (new)
+    print("\n🔑 JWT AUTHENTICATION")
+    print("-" * 30)
+    jwt_success, jwt_token = tester.test_jwt_admin_login()
+    
     # Vehicle CRUD operations
     print("\n🚗 VEHICLE MANAGEMENT")
     print("-" * 30)
@@ -222,11 +329,23 @@ def main():
         tester.test_update_vehicle(vehicle_id)
         tester.test_delete_vehicle(vehicle_id)
     
-    # Leasing requests
-    print("\n📝 LEASING REQUESTS")
+    # Leasing requests and leads
+    print("\n📝 LEASING REQUESTS & LEADS")
     print("-" * 30)
     success, request_id = tester.test_create_leasing_request()
     tester.test_get_leasing_requests()
+    
+    # New leads endpoint
+    success, lead_id = tester.test_create_lead()
+    if jwt_success:
+        tester.test_get_leads()
+        
+        # CSV Export tests
+        print("\n📊 CSV EXPORT TESTS")
+        print("-" * 30)
+        tester.test_export_leads_csv()
+        tester.test_export_leads_csv_with_status_filter()
+        tester.test_export_leads_csv_with_date_filter()
     
     # CMS management
     print("\n📄 CMS MANAGEMENT")
