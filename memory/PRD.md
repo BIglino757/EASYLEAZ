@@ -33,16 +33,12 @@ Premium automotive leasing landing page + CRM for EasyLeaz, Geneva. Ultra-premiu
 - CMS global content editor
 
 ## Prioritized Backlog
-- P0: Calendly integration
+- P0: Configurer SMTP Infomaniak (SMTP_USER, SMTP_PASS, SMTP_FROM, NOTIFICATION_EMAIL dans .env)
 - P0: Real vehicle images
-- P1: Typeform integration
-- P1: Configure SMTP for email notifications
+- P1: Lead CSV export advanced (charts, PDF reports)
 - P2: Multi-language (FR/EN)
-- P2: Lead export (CSV)
-- P2: Analytics charts in dashboard
 
 ## Next Tasks
-1. Configure SMTP for email notifications
-2. Integrate Calendly when URL provided
-3. Replace stock images with client photos
-4. Add lead CSV export
+1. Configurer les identifiants SMTP Infomaniak dans .env pour activer les emails
+2. Remplacer les images stock par les photos véhicules du client
+3. Ajouter des rapports PDF / graphiques au dashboard
