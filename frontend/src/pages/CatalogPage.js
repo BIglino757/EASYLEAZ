@@ -6,6 +6,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useNavigate, useSearchParams } from "react-router-dom";
 import axios from "axios";
 
+const BACKEND = process.env.REACT_APP_BACKEND_URL;
+
+const getImgSrc = (vehicle) => {
+  const url = vehicle.image_url;
+  if (!url) return "";
+  if (url.startsWith("http")) return url;
+  return `${BACKEND}${url}`;
+};
+
 const VehicleCard = ({ vehicle, index }) => {
   const navigate = useNavigate();
   const scrollToForm = () => navigate("/#demande");
@@ -20,7 +29,7 @@ const VehicleCard = ({ vehicle, index }) => {
     >
       <div className="relative h-56 overflow-hidden">
         <img
-          src={vehicle.image_url}
+          src={getImgSrc(vehicle)}
           alt={`${vehicle.brand} ${vehicle.model}`}
           className="vehicle-card-image w-full h-full object-cover"
         />

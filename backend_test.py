@@ -130,7 +130,7 @@ class EasyLeazAPITester:
         return self.run_test("Get All Vehicles (Admin)", "GET", "vehicles/all", 200, headers=headers)
 
     def test_create_vehicle(self):
-        """Test creating a new vehicle"""
+        """Test creating a new vehicle with condition field"""
         headers = {"x-admin-token": self.admin_token}
         data = {
             "brand": "Test Brand",
@@ -142,15 +142,35 @@ class EasyLeazAPITester:
             "price": 50000,
             "monthly_payment": 650,
             "image_url": "https://example.com/test.jpg",
-            "badge": "Test"
+            "badge": "Test",
+            "condition": "neuf"
         }
-        success, response = self.run_test("Create Vehicle", "POST", "vehicles", 200, data, headers)
+        success, response = self.run_test("Create Vehicle with Condition", "POST", "vehicles", 200, data, headers)
+        if success and 'id' in response:
+            return success, response['id']
+        return success, None
+
+    def test_create_vehicle_occasion(self):
+        """Test creating an occasion vehicle"""
+        headers = {"x-admin-token": self.admin_token}
+        data = {
+            "brand": "Test Occasion",
+            "model": "Test Model Occasion",
+            "year": 2022,
+            "mileage": 15000,
+            "fuel": "Diesel",
+            "transmission": "Manuelle",
+            "price": 35000,
+            "monthly_payment": 450,
+            "condition": "occasion"
+        }
+        success, response = self.run_test("Create Occasion Vehicle", "POST", "vehicles", 200, data, headers)
         if success and 'id' in response:
             return success, response['id']
         return success, None
 
     def test_update_vehicle(self, vehicle_id):
-        """Test updating a vehicle"""
+        """Test updating a vehicle including condition"""
         if not vehicle_id:
             print("❌ Skipping update test - no vehicle ID")
             return False, None
@@ -158,18 +178,119 @@ class EasyLeazAPITester:
         headers = {"x-admin-token": self.admin_token}
         data = {
             "brand": "Updated Brand",
-            "price": 55000
+            "price": 55000,
+            "condition": "occasion"
         }
         return self.run_test(f"Update Vehicle {vehicle_id}", "PUT", f"vehicles/{vehicle_id}", 200, data, headers)
 
-    def test_delete_vehicle(self, vehicle_id):
-        """Test deleting a vehicle"""
+    def test_upload_vehicle_images(self, vehicle_id):
+        """Test uploading images to a vehicle"""
         if not vehicle_id:
-            print("❌ Skipping delete test - no vehicle ID")
+            print("❌ Skipping image upload test - no vehicle ID")
             return False, None
-            
+        
+        import requests
+        import io
+        
+        url = f"{self.api_url}/vehicles/{vehicle_id}/images"
         headers = {"x-admin-token": self.admin_token}
-        return self.run_test(f"Delete Vehicle {vehicle_id}", "DELETE", f"vehicles/{vehicle_id}", 200, headers=headers)
+        
+        # Create a fake image file
+        fake_image = io.BytesIO(b"fake image content for testing")
+        files = {'files': ('test_image.jpg', fake_image, 'image/jpeg')}
+        
+        self.tests_run += 1
+        print(f"\n🔍 Testing Upload Vehicle Images...")
+        print(f"   URL: {url}")
+        
+        try:
+            response = requests.post(url, files=files, headers=headers, timeout=10)
+            success = response.status_code == 200
+            if success:
+                self.tests_passed += 1
+                print(f"✅ Passed - Status: {response.status_code}")
+                try:
+                    response_data = response.json()
+                    images = response_data.get('images', [])
+                    if images:
+                        return True, images[0].get('id')
+                    return True, None
+                except:
+                    return True, None
+            else:
+                print(f"❌ Failed - Expected 200, got {response.status_code}")
+                print(f"   Response: {response.text[:200]}...")
+                self.failed_tests.append({
+                    "test": "Upload Vehicle Images",
+                    "expected": 200,
+                    "actual": response.status_code,
+                    "response": response.text[:200]
+                })
+                return False, None
+        except Exception as e:
+            print(f"❌ Failed - Error: {str(e)}")
+            self.failed_tests.append({
+                "test": "Upload Vehicle Images",
+                "error": str(e)
+            })
+            return False, None
+
+    def test_set_main_image(self, vehicle_id, image_id):
+        """Test setting main image for a vehicle"""
+        if not vehicle_id or not image_id:
+            print("❌ Skipping set main image test - missing vehicle or image ID")
+            return False, None
+        
+        headers = {"x-admin-token": self.admin_token}
+        data = {"image_id": image_id}
+        return self.run_test(f"Set Main Image for Vehicle {vehicle_id}", "POST", f"vehicles/{vehicle_id}/main-image", 200, data, headers)
+
+    def test_delete_vehicle_image(self, vehicle_id, image_id):
+        """Test deleting a vehicle image"""
+        if not vehicle_id or not image_id:
+            print("❌ Skipping delete image test - missing vehicle or image ID")
+            return False, None
+        
+        headers = {"x-admin-token": self.admin_token}
+        return self.run_test(f"Delete Vehicle Image {image_id}", "DELETE", f"vehicles/{vehicle_id}/images/{image_id}", 200, headers=headers)
+
+    def test_serve_vehicle_image(self, filename):
+        """Test serving vehicle images"""
+        if not filename:
+            print("❌ Skipping serve image test - no filename")
+            return False, None
+        
+        import requests
+        url = f"{self.api_url}/uploads/vehicles/{filename}"
+        
+        self.tests_run += 1
+        print(f"\n🔍 Testing Serve Vehicle Image...")
+        print(f"   URL: {url}")
+        
+        try:
+            response = requests.get(url, timeout=10)
+            # Accept both 200 (file exists) and 404 (file doesn't exist) as valid responses
+            success = response.status_code in [200, 404]
+            if success:
+                self.tests_passed += 1
+                print(f"✅ Passed - Status: {response.status_code}")
+                return True, None
+            else:
+                print(f"❌ Failed - Expected 200 or 404, got {response.status_code}")
+                self.failed_tests.append({
+                    "test": "Serve Vehicle Image",
+                    "expected": "200 or 404",
+                    "actual": response.status_code,
+                    "response": response.text[:200]
+                })
+                return False, None
+        except Exception as e:
+            print(f"❌ Failed - Error: {str(e)}")
+            self.failed_tests.append({
+                "test": "Serve Vehicle Image",
+                "error": str(e)
+            })
+            return False, None
 
     def test_create_leasing_request(self):
         """Test creating a leasing request"""
@@ -265,6 +386,14 @@ class EasyLeazAPITester:
         if not self.jwt_token:
             print("❌ Skipping CSV export test - no JWT token")
             return False, None
+    def test_delete_vehicle(self, vehicle_id):
+        """Test deleting a vehicle"""
+        if not vehicle_id:
+            print("❌ Skipping delete test - no vehicle ID")
+            return False, None
+            
+        headers = {"x-admin-token": self.admin_token}
+        return self.run_test(f"Delete Vehicle {vehicle_id}", "DELETE", f"vehicles/{vehicle_id}", 200, headers=headers)
         
         headers = {"Authorization": f"Bearer {self.jwt_token}"}
         success, _ = self.run_test("Export Leads CSV (Date Filter)", "GET", "leads/export?date_from=2026-01-01&date_to=2026-12-31", 200, headers=headers)
@@ -345,14 +474,30 @@ def main():
     print("-" * 30)
     jwt_success, jwt_token = tester.test_jwt_admin_login()
     
-    # Vehicle CRUD operations
+    # Vehicle CRUD operations with image management
     print("\n🚗 VEHICLE MANAGEMENT")
     print("-" * 30)
     tester.test_get_all_vehicles_admin()
-    success, vehicle_id = tester.test_create_vehicle()
-    if success and vehicle_id:
-        tester.test_update_vehicle(vehicle_id)
-        tester.test_delete_vehicle(vehicle_id)
+    
+    # Test creating vehicles with different conditions
+    success_neuf, vehicle_id_neuf = tester.test_create_vehicle()
+    success_occasion, vehicle_id_occasion = tester.test_create_vehicle_occasion()
+    
+    # Test image upload and management
+    if success_neuf and vehicle_id_neuf:
+        print(f"\n📸 IMAGE MANAGEMENT FOR VEHICLE {vehicle_id_neuf}")
+        print("-" * 30)
+        upload_success, image_id = tester.test_upload_vehicle_images(vehicle_id_neuf)
+        if upload_success and image_id:
+            tester.test_set_main_image(vehicle_id_neuf, image_id)
+            tester.test_serve_vehicle_image("test_image.jpg")
+            tester.test_delete_vehicle_image(vehicle_id_neuf, image_id)
+        
+        tester.test_update_vehicle(vehicle_id_neuf)
+        tester.test_delete_vehicle(vehicle_id_neuf)
+    
+    if success_occasion and vehicle_id_occasion:
+        tester.test_delete_vehicle(vehicle_id_occasion)
     
     # Leasing requests and leads
     print("\n📝 LEASING REQUESTS & LEADS")

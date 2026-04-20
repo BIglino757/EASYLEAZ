@@ -83,6 +83,7 @@ class Vehicle(BaseModel):
     price: int
     monthly_payment: int
     image_url: str = ""
+    images: list = Field(default_factory=list)
     badge: str = ""
     condition: str = "occasion"
     status: str = "active"
@@ -98,6 +99,7 @@ class VehicleCreate(BaseModel):
     price: int
     monthly_payment: int
     image_url: str = ""
+    images: list = Field(default_factory=list)
     badge: str = ""
     condition: str = "occasion"
 
@@ -573,10 +575,95 @@ async def update_vehicle(vehicle_id: str, data: VehicleUpdate, admin: dict = Dep
 
 @api_router.delete("/vehicles/{vehicle_id}")
 async def delete_vehicle(vehicle_id: str, admin: dict = Depends(get_current_admin)):
+    # Delete associated images
+    vehicle = await db.vehicles.find_one({"id": vehicle_id}, {"_id": 0})
+    if vehicle:
+        for img in vehicle.get("images", []):
+            fpath = UPLOAD_DIR / "vehicles" / img.get("filename", "")
+            if fpath.exists():
+                fpath.unlink()
     result = await db.vehicles.delete_one({"id": vehicle_id})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Véhicule non trouvé")
     return {"success": True}
+
+# ─── Vehicle Images ───
+
+VEHICLE_UPLOAD_DIR = UPLOAD_DIR / "vehicles"
+VEHICLE_UPLOAD_DIR.mkdir(exist_ok=True)
+
+@api_router.post("/vehicles/{vehicle_id}/images")
+async def upload_vehicle_images(vehicle_id: str, files: List[UploadFile] = File(...), admin: dict = Depends(get_current_admin)):
+    vehicle = await db.vehicles.find_one({"id": vehicle_id}, {"_id": 0})
+    if not vehicle:
+        raise HTTPException(status_code=404, detail="Véhicule non trouvé")
+    uploaded = []
+    for file in files:
+        if not file.filename:
+            continue
+        ext = validate_file(file)
+        file_id = str(uuid.uuid4())
+        filename = f"{file_id}{ext}"
+        filepath = VEHICLE_UPLOAD_DIR / filename
+        content = await file.read()
+        if len(content) > MAX_FILE_SIZE:
+            raise HTTPException(status_code=400, detail=f"Fichier trop volumineux (max 5MB): {file.filename}")
+        async with aiofiles.open(filepath, 'wb') as f:
+            await f.write(content)
+        img_data = {"id": file_id, "filename": filename, "original_name": file.filename, "size": len(content), "created_at": datetime.now(timezone.utc).isoformat()}
+        uploaded.append(img_data)
+    if uploaded:
+        await db.vehicles.update_one({"id": vehicle_id}, {"$push": {"images": {"$each": uploaded}}})
+        # Set first image as main image_url if none set
+        if not vehicle.get("image_url"):
+            await db.vehicles.update_one({"id": vehicle_id}, {"$set": {"image_url": f"/api/uploads/vehicles/{uploaded[0]['filename']}"}})
+    updated = await db.vehicles.find_one({"id": vehicle_id}, {"_id": 0})
+    return updated
+
+@api_router.delete("/vehicles/{vehicle_id}/images/{image_id}")
+async def delete_vehicle_image(vehicle_id: str, image_id: str, admin: dict = Depends(get_current_admin)):
+    vehicle = await db.vehicles.find_one({"id": vehicle_id}, {"_id": 0})
+    if not vehicle:
+        raise HTTPException(status_code=404, detail="Véhicule non trouvé")
+    image = next((img for img in vehicle.get("images", []) if img["id"] == image_id), None)
+    if not image:
+        raise HTTPException(status_code=404, detail="Image non trouvée")
+    fpath = VEHICLE_UPLOAD_DIR / image.get("filename", "")
+    if fpath.exists():
+        fpath.unlink()
+    await db.vehicles.update_one({"id": vehicle_id}, {"$pull": {"images": {"id": image_id}}})
+    # Update image_url if we deleted the main image
+    current_url = vehicle.get("image_url", "")
+    if image["filename"] in current_url:
+        remaining = [img for img in vehicle.get("images", []) if img["id"] != image_id]
+        new_url = f"/api/uploads/vehicles/{remaining[0]['filename']}" if remaining else ""
+        await db.vehicles.update_one({"id": vehicle_id}, {"$set": {"image_url": new_url}})
+    updated = await db.vehicles.find_one({"id": vehicle_id}, {"_id": 0})
+    return updated
+
+@api_router.post("/vehicles/{vehicle_id}/main-image")
+async def set_main_image(vehicle_id: str, data: dict, admin: dict = Depends(get_current_admin)):
+    image_id = data.get("image_id", "")
+    vehicle = await db.vehicles.find_one({"id": vehicle_id}, {"_id": 0})
+    if not vehicle:
+        raise HTTPException(status_code=404, detail="Véhicule non trouvé")
+    image = next((img for img in vehicle.get("images", []) if img["id"] == image_id), None)
+    if not image:
+        raise HTTPException(status_code=404, detail="Image non trouvée")
+    await db.vehicles.update_one({"id": vehicle_id}, {"$set": {"image_url": f"/api/uploads/vehicles/{image['filename']}"}})
+    updated = await db.vehicles.find_one({"id": vehicle_id}, {"_id": 0})
+    return updated
+
+# ─── Static file serving for uploads ───
+
+@api_router.get("/uploads/vehicles/{filename}")
+async def serve_vehicle_image(filename: str):
+    filepath = VEHICLE_UPLOAD_DIR / filename
+    if not filepath.exists():
+        raise HTTPException(status_code=404, detail="Fichier non trouvé")
+    ext = filepath.suffix.lower()
+    media_types = {".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".pdf": "application/pdf"}
+    return FileResponse(str(filepath), media_type=media_types.get(ext, "application/octet-stream"))
 
 # ─── CMS ───
 
