@@ -5,6 +5,7 @@ import axios from "axios";
 import LandingPage from "@/pages/LandingPage";
 import AdminDashboard from "@/pages/AdminDashboard";
 import CatalogPage from "@/pages/CatalogPage";
+import { EasyLocLanding, EasyLocAdmin } from "@/easyloc/EasyLocApp";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -56,6 +57,8 @@ function App() {
           <Route path="/" element={<LandingPage />} />
           <Route path="/catalogue" element={<CatalogPage />} />
           <Route path="/admin" element={<AdminDashboard />} />
+          <Route path="/easyloc" element={<EasyLocLanding />} />
+          <Route path="/easyloc/admin" element={<EasyLocAdmin />} />
         </Routes>
       </BrowserRouter>
     </AppContext.Provider>

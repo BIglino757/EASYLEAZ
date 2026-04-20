@@ -748,6 +748,155 @@ async def seed_data():
         await db.admin_users.insert_one({"id": str(uuid.uuid4()), "email": "admin@easyleaz.ch", "password": hashed, "name": "Admin EasyLeaz", "created_at": datetime.now(timezone.utc).isoformat()})
     return {"success": True, "message": "Données initiales créées"}
 
+# ═══════════════════════════════════════════════════════════════════
+# EASYLOC — Second site "2-in-1". All routes prefixed /api/easyloc/*
+# Collections: easyloc_vehicles, easyloc_reservations, easyloc_content
+# Admin auth: unified with EasyLeaz JWT (via get_current_admin)
+# ═══════════════════════════════════════════════════════════════════
+
+easyloc_router = APIRouter(prefix="/api/easyloc")
+
+class ELReservationCreate(BaseModel):
+    nom: str
+    prenom: str
+    telephone: str
+    email: str
+    vehicule: str
+    date_debut: str
+    date_fin: str
+    message: str = ""
+
+class ELVehicleCreate(BaseModel):
+    name: str
+    year: int
+    image: str
+    price_day: int
+    price_weekend: int
+    km_included: str = "200 km/jour inclus"
+    specs: dict = {}
+    category: str = "berline"
+    available: bool = True
+    order: int = 0
+
+EL_SEED_VEHICLES = [
+    {"name": "Mercedes-AMG GT", "year": 2024, "image": "https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?w=800&q=80", "price_day": 450, "price_weekend": 1200, "km_included": "200 km/jour inclus", "specs": {"power": "585 ch", "acceleration": "0-100 en 3.2s", "transmission": "Automatique", "fuel": "Essence"}, "category": "sport", "available": True, "order": 0},
+    {"name": "Porsche 911 Turbo S", "year": 2024, "image": "https://images.unsplash.com/photo-1614162692292-7ac56d7f7f1e?w=800&q=80", "price_day": 550, "price_weekend": 1500, "km_included": "200 km/jour inclus", "specs": {"power": "650 ch", "acceleration": "0-100 en 2.7s", "transmission": "PDK", "fuel": "Essence"}, "category": "sport", "available": True, "order": 1},
+    {"name": "BMW M8 Competition", "year": 2024, "image": "https://images.unsplash.com/photo-1555215695-3004980ad54e?w=800&q=80", "price_day": 400, "price_weekend": 1100, "km_included": "250 km/jour inclus", "specs": {"power": "625 ch", "acceleration": "0-100 en 3.0s", "transmission": "Automatique", "fuel": "Essence"}, "category": "sport", "available": True, "order": 2},
+    {"name": "Range Rover Autobiography", "year": 2024, "image": "https://images.unsplash.com/photo-1606016159991-dfe4f2746ad5?w=800&q=80", "price_day": 380, "price_weekend": 1000, "km_included": "300 km/jour inclus", "specs": {"power": "530 ch", "acceleration": "0-100 en 4.6s", "transmission": "Automatique", "fuel": "Diesel"}, "category": "suv", "available": True, "order": 3},
+    {"name": "Bentley Continental GT", "year": 2024, "image": "https://images.unsplash.com/photo-1563720223185-11003d516935?w=800&q=80", "price_day": 650, "price_weekend": 1800, "km_included": "200 km/jour inclus", "specs": {"power": "659 ch", "acceleration": "0-100 en 3.6s", "transmission": "Automatique", "fuel": "Essence"}, "category": "luxe", "available": True, "order": 4},
+    {"name": "Lamborghini Huracan EVO", "year": 2024, "image": "https://images.unsplash.com/photo-1544636331-e26879cd4d9b?w=800&q=80", "price_day": 800, "price_weekend": 2200, "km_included": "150 km/jour inclus", "specs": {"power": "640 ch", "acceleration": "0-100 en 2.9s", "transmission": "Automatique", "fuel": "Essence"}, "category": "supercar", "available": True, "order": 5},
+    {"name": "Audi RS e-tron GT", "year": 2024, "image": "https://images.unsplash.com/photo-1603584173870-7f23fdae1b7a?w=800&q=80", "price_day": 420, "price_weekend": 1150, "km_included": "250 km/jour inclus", "specs": {"power": "646 ch", "acceleration": "0-100 en 3.3s", "transmission": "Automatique", "fuel": "Electrique"}, "category": "electrique", "available": True, "order": 6},
+    {"name": "Mercedes Classe S", "year": 2024, "image": "https://images.unsplash.com/photo-1553440569-bcc63803a83d?w=800&q=80", "price_day": 350, "price_weekend": 950, "km_included": "300 km/jour inclus", "specs": {"power": "503 ch", "acceleration": "0-100 en 4.4s", "transmission": "Automatique", "fuel": "Hybride"}, "category": "berline", "available": True, "order": 7},
+    {"name": "Ferrari Roma", "year": 2024, "image": "https://images.unsplash.com/photo-1592198084033-aade902d1aae?w=800&q=80", "price_day": 900, "price_weekend": 2500, "km_included": "150 km/jour inclus", "specs": {"power": "620 ch", "acceleration": "0-100 en 3.4s", "transmission": "Automatique", "fuel": "Essence"}, "category": "supercar", "available": True, "order": 8},
+]
+
+EL_SEED_CONTENT = {
+    "hero": {"title": "Location de vehicules premium a Geneve", "subtitle": "Service sur mesure · Vehicules d'exception · Disponibilite immediate", "cta_primary": "Reserver maintenant", "cta_secondary": "Voir les vehicules", "image": "https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?w=1600&q=80"},
+    "process": {"title": "Comment ca fonctionne", "steps": [{"number": "01", "title": "Choisissez votre vehicule", "description": "Parcourez notre catalogue de vehicules premium et selectionnez celui qui correspond a vos envies."}, {"number": "02", "title": "Selectionnez vos dates", "description": "Choisissez vos dates de location et consultez la disponibilite en temps reel."}, {"number": "03", "title": "Validez votre reservation", "description": "Confirmez votre demande et notre equipe vous contactera sous 30 minutes."}]},
+    "reservation_cta": {"title": "Reservez votre vehicule en quelques minutes", "subtitle": "Notre equipe est a votre disposition pour vous accompagner dans votre choix.", "cta": "Faire une demande de reservation", "image": "https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?w=1600&q=80"},
+    "appointment": {"title": "Parler avec un conseiller EasyLoc", "subtitle": "Prenez rendez-vous avec l'un de nos conseillers pour un accompagnement personnalise.", "cta": "Prendre rendez-vous", "embed_url": ""},
+    "contact": {"phone": "079 949 32 29", "whatsapp": "078 898 32 29", "location": "Geneve", "instagram": "https://www.instagram.com/easylocge?igsh=MWJ0NXo1eGZncmI3MA==", "email": "contact@easyloc.ch"},
+    "reservation_form": {"title": "Faire une demande de reservation", "subtitle": "Remplissez le formulaire ci-dessous et nous vous recontacterons dans les plus brefs delais.", "embed_url": ""},
+    "navbar": {"brand": "EASYLOC", "links": ["Vehicules", "Comment ca marche", "Reservation", "Contact"]},
+    "footer": {"brand": "EASYLOC", "tagline": "Location de vehicules premium a Geneve", "copyright": "2025 EasyLoc. Tous droits reserves."},
+}
+
+async def seed_easyloc():
+    if await db.easyloc_vehicles.count_documents({}) == 0:
+        for v in EL_SEED_VEHICLES:
+            await db.easyloc_vehicles.insert_one({"id": str(uuid.uuid4()), **v})
+        logger.info("Seeded %d easyloc vehicles", len(EL_SEED_VEHICLES))
+    for section, content in EL_SEED_CONTENT.items():
+        existing = await db.easyloc_content.find_one({"section": section}, {"_id": 0})
+        if not existing:
+            await db.easyloc_content.insert_one({"section": section, "content": content})
+
+# Public routes
+@easyloc_router.get("/content")
+async def el_get_all_content():
+    docs = await db.easyloc_content.find({}, {"_id": 0}).to_list(100)
+    return {doc["section"]: doc["content"] for doc in docs}
+
+@easyloc_router.get("/content/{section}")
+async def el_get_content(section: str):
+    doc = await db.easyloc_content.find_one({"section": section}, {"_id": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Section not found")
+    return doc["content"]
+
+@easyloc_router.get("/vehicles")
+async def el_get_vehicles():
+    return await db.easyloc_vehicles.find({}, {"_id": 0}).sort("order", 1).to_list(100)
+
+@easyloc_router.get("/vehicles/{vehicle_id}")
+async def el_get_vehicle(vehicle_id: str):
+    vehicle = await db.easyloc_vehicles.find_one({"id": vehicle_id}, {"_id": 0})
+    if not vehicle:
+        raise HTTPException(status_code=404, detail="Vehicle not found")
+    return vehicle
+
+@easyloc_router.post("/reservations")
+async def el_create_reservation(data: ELReservationCreate):
+    reservation = {
+        "id": str(uuid.uuid4()),
+        **data.model_dump(),
+        "status": "pending",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.easyloc_reservations.insert_one(reservation)
+    return {"id": reservation["id"], "status": "pending", "message": "Reservation created successfully"}
+
+# Admin routes (use unified EasyLeaz JWT)
+@easyloc_router.put("/admin/content/{section}")
+async def el_update_content(section: str, data: dict, admin: dict = Depends(get_current_admin)):
+    await db.easyloc_content.update_one({"section": section}, {"$set": {"content": data}}, upsert=True)
+    return {"status": "updated", "section": section}
+
+@easyloc_router.post("/admin/vehicles")
+async def el_create_vehicle(data: ELVehicleCreate, admin: dict = Depends(get_current_admin)):
+    doc = {"id": str(uuid.uuid4()), **data.model_dump()}
+    await db.easyloc_vehicles.insert_one(doc)
+    return {"id": doc["id"], "status": "created"}
+
+@easyloc_router.put("/admin/vehicles/{vehicle_id}")
+async def el_update_vehicle(vehicle_id: str, data: dict, admin: dict = Depends(get_current_admin)):
+    result = await db.easyloc_vehicles.update_one({"id": vehicle_id}, {"$set": data})
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Vehicle not found")
+    return {"status": "updated"}
+
+@easyloc_router.delete("/admin/vehicles/{vehicle_id}")
+async def el_delete_vehicle(vehicle_id: str, admin: dict = Depends(get_current_admin)):
+    result = await db.easyloc_vehicles.delete_one({"id": vehicle_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Vehicle not found")
+    return {"status": "deleted"}
+
+@easyloc_router.get("/admin/reservations")
+async def el_get_reservations(admin: dict = Depends(get_current_admin)):
+    return await db.easyloc_reservations.find({}, {"_id": 0}).sort("created_at", -1).to_list(1000)
+
+@easyloc_router.put("/admin/reservations/{reservation_id}")
+async def el_update_reservation_status(reservation_id: str, data: dict, admin: dict = Depends(get_current_admin)):
+    result = await db.easyloc_reservations.update_one(
+        {"id": reservation_id},
+        {"$set": {"status": data.get("status", "pending")}}
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Reservation not found")
+    return {"status": "updated"}
+
+@easyloc_router.post("/seed")
+async def el_seed():
+    await seed_easyloc()
+    return {"success": True}
+
+app.include_router(easyloc_router)
+
+@app.on_event("startup")
+async def _startup_easyloc_seed():
+    await seed_easyloc()
+
 app.include_router(api_router)
 
 app.add_middleware(

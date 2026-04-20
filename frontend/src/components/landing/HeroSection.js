@@ -1,12 +1,14 @@
 import { useApp } from "@/App";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { useRef } from "react";
-import { ChevronRight, Calendar } from "lucide-react";
+import { ChevronRight, Calendar, Key } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 export const HeroSection = () => {
   const { cmsData } = useApp();
   const hero = cmsData?.hero || {};
   const ref = useRef(null);
+  const navigate = useNavigate();
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end start"] });
   const bgY = useTransform(scrollYProgress, [0, 1], ["0%", "30%"]);
   const textOpacity = useTransform(scrollYProgress, [0, 0.5], [1, 0]);
@@ -91,6 +93,14 @@ export const HeroSection = () => {
           >
             <Calendar size={18} />
             {hero.cta_secondary || "Nous contacter"}
+          </button>
+          <button
+            onClick={() => navigate("/easyloc")}
+            className="px-8 py-4 rounded-full text-sm md:text-base font-semibold tracking-wide flex items-center gap-2 bg-transparent border border-[#C9A227]/50 text-[#D4AF37] hover:bg-[#C9A227]/10 hover:border-[#C9A227] transition-all duration-300"
+            data-testid="hero-cta-easyloc"
+          >
+            <Key size={18} />
+            Louer un véhicule
           </button>
         </motion.div>
 

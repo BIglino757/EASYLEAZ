@@ -64,6 +64,13 @@ export const Navbar = () => {
               </button>
             ))}
             <button
+              onClick={() => navigate("/easyloc")}
+              className="font-inter text-xs tracking-[0.25em] uppercase text-[#C9A227] hover:text-[#D4AF37] border border-[#C9A227]/30 hover:border-[#C9A227]/60 rounded-full px-4 py-2 transition-all duration-300"
+              data-testid="nav-cta-easyloc"
+            >
+              EasyLoc
+            </button>
+            <button
               onClick={() => handleLink({ href: "#demande", type: "scroll" })}
               className="btn-primary-easyleaz px-6 py-2.5 rounded-full text-sm font-semibold tracking-wide"
               data-testid="nav-cta-button"
@@ -107,6 +114,13 @@ export const Navbar = () => {
                 className="btn-primary-easyleaz px-8 py-4 rounded-full text-base font-semibold tracking-wide mt-4 w-fit"
               >
                 Demande de leasing
+              </button>
+              <button
+                onClick={() => { setMobileOpen(false); navigate("/easyloc"); }}
+                className="border border-[#C9A227]/40 text-[#C9A227] hover:bg-[#C9A227]/10 px-8 py-4 rounded-full text-base font-semibold tracking-wide w-fit transition-colors"
+                data-testid="mobile-nav-cta-easyloc"
+              >
+                Louer un véhicule → EasyLoc
               </button>
             </div>
           </motion.div>

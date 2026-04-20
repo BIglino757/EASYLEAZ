@@ -7,6 +7,7 @@ import { ProcessSection } from "@/components/landing/ProcessSection";
 import { LeasingFormSection } from "@/components/landing/LeasingFormSection";
 import { FAQSection } from "@/components/landing/FAQSection";
 import { ContactSection } from "@/components/landing/ContactSection";
+import { EasyLocSwitchSection } from "@/components/landing/EasyLocSwitchSection";
 import { Footer } from "@/components/landing/Footer";
 
 export default function LandingPage() {
@@ -32,6 +33,7 @@ export default function LandingPage() {
       <ProcessSection />
       <LeasingFormSection />
       <FAQSection />
+      <EasyLocSwitchSection />
       <ContactSection />
       <Footer />
     </div>
