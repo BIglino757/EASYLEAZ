@@ -76,6 +76,14 @@ class EasyLeazAPITester:
     def test_get_vehicles(self):
         """Test getting public vehicles"""
         return self.run_test("Get Public Vehicles", "GET", "vehicles", 200)
+    
+    def test_get_vehicles_occasion(self):
+        """Test getting occasion vehicles only"""
+        return self.run_test("Get Occasion Vehicles", "GET", "vehicles?condition=occasion", 200)
+    
+    def test_get_vehicles_neuf(self):
+        """Test getting neuf vehicles only"""
+        return self.run_test("Get Neuf Vehicles", "GET", "vehicles?condition=neuf", 200)
 
     def test_get_cms_sections(self):
         """Test getting all CMS sections"""
@@ -84,6 +92,18 @@ class EasyLeazAPITester:
     def test_get_cms_hero_section(self):
         """Test getting specific CMS section"""
         return self.run_test("Get Hero CMS Section", "GET", "cms/hero", 200)
+    
+    def test_get_cms_about_section(self):
+        """Test getting about CMS section"""
+        return self.run_test("Get About CMS Section", "GET", "cms/about", 200)
+    
+    def test_get_cms_faq_section(self):
+        """Test getting FAQ CMS section"""
+        return self.run_test("Get FAQ CMS Section", "GET", "cms/faq", 200)
+    
+    def test_get_cms_vehicle_cta_section(self):
+        """Test getting vehicle CTA CMS section"""
+        return self.run_test("Get Vehicle CTA CMS Section", "GET", "cms/vehicle_cta", 200)
 
     def test_admin_login(self):
         """Test admin login"""
@@ -306,8 +326,13 @@ def main():
     print("\n🌐 PUBLIC ENDPOINTS")
     print("-" * 30)
     tester.test_get_vehicles()
+    tester.test_get_vehicles_occasion()
+    tester.test_get_vehicles_neuf()
     tester.test_get_cms_sections()
     tester.test_get_cms_hero_section()
+    tester.test_get_cms_about_section()
+    tester.test_get_cms_faq_section()
+    tester.test_get_cms_vehicle_cta_section()
     
     # Admin authentication
     print("\n🔐 ADMIN AUTHENTICATION")

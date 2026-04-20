@@ -16,7 +16,7 @@ export const VehicleManager = ({ token }) => {
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
     brand: "", model: "", year: 2024, mileage: 0, fuel: "Essence",
-    transmission: "Automatique", price: 0, monthly_payment: 0, image_url: "", badge: ""
+    transmission: "Automatique", price: 0, monthly_payment: 0, image_url: "", badge: "", condition: "occasion"
   });
 
   const headers = token.length > 30 ? { Authorization: `Bearer ${token}` } : { "x-admin-token": token };
@@ -32,13 +32,13 @@ export const VehicleManager = ({ token }) => {
   useEffect(() => { fetchVehicles(); }, [fetchVehicles]);
 
   const resetForm = () => {
-    setForm({ brand: "", model: "", year: 2024, mileage: 0, fuel: "Essence", transmission: "Automatique", price: 0, monthly_payment: 0, image_url: "", badge: "" });
+    setForm({ brand: "", model: "", year: 2024, mileage: 0, fuel: "Essence", transmission: "Automatique", price: 0, monthly_payment: 0, image_url: "", badge: "", condition: "occasion" });
     setEditing(null);
   };
 
   const openEdit = (v) => {
     setEditing(v.id);
-    setForm({ brand: v.brand, model: v.model, year: v.year, mileage: v.mileage, fuel: v.fuel, transmission: v.transmission, price: v.price, monthly_payment: v.monthly_payment, image_url: v.image_url || "", badge: v.badge || "" });
+    setForm({ brand: v.brand, model: v.model, year: v.year, mileage: v.mileage, fuel: v.fuel, transmission: v.transmission, price: v.price, monthly_payment: v.monthly_payment, image_url: v.image_url || "", badge: v.badge || "", condition: v.condition || "occasion" });
     setDialogOpen(true);
   };
 
@@ -146,6 +146,16 @@ export const VehicleManager = ({ token }) => {
               <div className="space-y-1">
                 <Label className="text-xs text-[#E6F7FF]/60">Badge</Label>
                 <Input value={form.badge} onChange={(e) => handleChange("badge", e.target.value)} placeholder="Ex: Neuf, Occasion sélectionnée, Premium" className="bg-[#071A1F]/50 border-[#22D3EE]/15 text-[#E6F7FF] h-10 rounded-lg" data-testid="vehicle-form-badge" />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs text-[#E6F7FF]/60">Catégorie</Label>
+                <Select value={form.condition} onValueChange={(v) => handleChange("condition", v)}>
+                  <SelectTrigger className="bg-[#071A1F]/50 border-[#22D3EE]/15 text-[#E6F7FF] h-10 rounded-lg" data-testid="vehicle-form-condition"><SelectValue /></SelectTrigger>
+                  <SelectContent className="bg-[#0E2F36] border-[#22D3EE]/20 text-[#E6F7FF]">
+                    <SelectItem value="occasion">Occasion</SelectItem>
+                    <SelectItem value="neuf">Neuf</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <button type="submit" disabled={saving} className="btn-primary-easyleaz w-full py-3 rounded-full font-semibold flex items-center justify-center gap-2" data-testid="vehicle-form-submit">
                 {saving ? <Loader2 size={18} className="animate-spin" /> : (editing ? "Mettre à jour" : "Ajouter le véhicule")}

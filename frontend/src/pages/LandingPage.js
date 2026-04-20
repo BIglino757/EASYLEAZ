@@ -1,9 +1,11 @@
 import { useApp } from "@/App";
 import { Navbar } from "@/components/landing/Navbar";
 import { HeroSection } from "@/components/landing/HeroSection";
-import { VehiclesSection } from "@/components/landing/VehiclesSection";
+import { VehicleCTASection } from "@/components/landing/VehicleCTASection";
+import { AboutSection } from "@/components/landing/AboutSection";
 import { ProcessSection } from "@/components/landing/ProcessSection";
 import { LeasingFormSection } from "@/components/landing/LeasingFormSection";
+import { FAQSection } from "@/components/landing/FAQSection";
 import { ContactSection } from "@/components/landing/ContactSection";
 import { Footer } from "@/components/landing/Footer";
 
@@ -25,9 +27,11 @@ export default function LandingPage() {
     <div className="min-h-screen bg-[#071A1F]" data-testid="landing-page">
       <Navbar />
       <HeroSection />
-      <VehiclesSection />
+      <VehicleCTASection />
+      <AboutSection />
       <ProcessSection />
       <LeasingFormSection />
+      <FAQSection />
       <ContactSection />
       <Footer />
     </div>

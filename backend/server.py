@@ -84,6 +84,7 @@ class Vehicle(BaseModel):
     monthly_payment: int
     image_url: str = ""
     badge: str = ""
+    condition: str = "occasion"
     status: str = "active"
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
@@ -98,6 +99,7 @@ class VehicleCreate(BaseModel):
     monthly_payment: int
     image_url: str = ""
     badge: str = ""
+    condition: str = "occasion"
 
 class VehicleUpdate(BaseModel):
     brand: Optional[str] = None
@@ -110,6 +112,7 @@ class VehicleUpdate(BaseModel):
     monthly_payment: Optional[int] = None
     image_url: Optional[str] = None
     badge: Optional[str] = None
+    condition: Optional[str] = None
     status: Optional[str] = None
 
 class CMSContentUpdate(BaseModel):
@@ -538,8 +541,11 @@ async def update_leasing_request_compat(request_id: str, status: str = Query(...
 # ─── Vehicles ───
 
 @api_router.get("/vehicles", response_model=List[Vehicle])
-async def get_vehicles():
-    vehicles = await db.vehicles.find({"status": "active"}, {"_id": 0}).to_list(100)
+async def get_vehicles(condition: Optional[str] = Query(None)):
+    query = {"status": "active"}
+    if condition and condition != "all":
+        query["condition"] = condition
+    vehicles = await db.vehicles.find(query, {"_id": 0}).to_list(100)
     return vehicles
 
 @api_router.get("/vehicles/all", response_model=List[Vehicle])
@@ -575,13 +581,25 @@ async def delete_vehicle(vehicle_id: str, admin: dict = Depends(get_current_admi
 # ─── CMS ───
 
 DEFAULT_CMS = {
-    "hero": {"title": "LEASING AUTOMOBILE PREMIUM À GENÈVE", "subtitle": "Neuf & occasion • Réponse rapide • Accompagnement complet", "cta_primary": "Demande de leasing", "cta_secondary": "Prendre rendez-vous", "background_image": "https://images.unsplash.com/photo-1617814076231-2c58846db944?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA3MDB8MHwxfHNlYXJjaHwyfHxtZXJjZWRlcyUyMGFtZyUyMGRhcmt8ZW58MHx8fHwxNzc0MTEwNTk1fDA&ixlib=rb-4.1.0&q=85"},
-    "vehicles": {"title": "NOS VÉHICULES", "subtitle": "Une sélection premium de véhicules neufs et d'occasion"},
+    "hero": {"title": "LEASING AUTOMOBILE PREMIUM À GENÈVE", "subtitle": "Neuf & occasion • Réponse rapide • Accompagnement complet", "cta_primary": "Demande de leasing", "cta_secondary": "Nous contacter", "background_image": "https://images.unsplash.com/photo-1617814076231-2c58846db944?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA3MDB8MHwxfHNlYXJjaHwyfHxtZXJjZWRlcyUyMGFtZyUyMGRhcmt8ZW58MHx8fHwxNzc0MTEwNTk1fDA&ixlib=rb-4.1.0&q=85"},
+    "vehicle_cta": {"title": "CHOISISSEZ VOTRE VÉHICULE", "subtitle": "Découvrez notre sélection de véhicules neufs et d'occasion, sélectionnés avec soin par nos experts.", "cta_text": "Voir le catalogue"},
+    "about": {"title": "QUI SOMMES-NOUS ?", "content": "EasyLeaz est votre partenaire de confiance pour le leasing automobile à Genève. Fondée par des passionnés de l'automobile, notre entreprise s'est donné pour mission de rendre le leasing accessible, transparent et sur-mesure.\n\nNous accompagnons chaque client de A à Z : du choix du véhicule à la signature du contrat, en passant par la recherche du meilleur financement adapté à votre profil. Que vous recherchiez un véhicule neuf ou d'occasion, notre équipe d'experts sélectionne pour vous les meilleures offres du marché suisse.\n\nNotre approche se distingue par un service personnalisé, une réponse rapide et une transparence totale sur les conditions de leasing. Basés à Genève, nous connaissons parfaitement le marché local et les attentes de notre clientèle exigeante."},
+    "faq": {"title": "QUESTIONS FRÉQUENTES", "subtitle": "Tout ce que vous devez savoir sur le leasing automobile", "questions": [
+        {"question": "Qu'est-ce que le leasing automobile ?", "answer": "Le leasing automobile est un mode de financement qui vous permet de conduire un véhicule neuf ou d'occasion en échange de mensualités fixes, sans avoir à acheter le véhicule. À la fin du contrat, vous pouvez restituer le véhicule, le racheter ou en choisir un nouveau."},
+        {"question": "Quelles sont les conditions pour obtenir un leasing ?", "answer": "Pour obtenir un leasing en Suisse, vous devez généralement être résident (permis C, B ou citoyen suisse), avoir un emploi stable, et justifier de revenus suffisants pour couvrir les mensualités. Chaque dossier est étudié individuellement."},
+        {"question": "Quelle est la durée d'un contrat de leasing ?", "answer": "La durée standard d'un contrat de leasing est comprise entre 24 et 60 mois. La durée est définie en fonction de vos préférences et du véhicule choisi. Plus la durée est longue, plus les mensualités sont basses."},
+        {"question": "Quel apport initial est nécessaire ?", "answer": "L'apport initial (ou premier versement majoré) varie selon le véhicule et votre profil. Dans certains cas, il est possible de démarrer un leasing sans apport. Notre équipe vous conseillera sur la meilleure option."},
+        {"question": "Puis-je résilier mon contrat de leasing avant terme ?", "answer": "Une résiliation anticipée est possible mais peut entraîner des frais. Nous vous expliquons en détail les conditions avant la signature du contrat pour éviter toute surprise."},
+        {"question": "Le leasing couvre-t-il l'assurance du véhicule ?", "answer": "Le leasing ne couvre généralement pas l'assurance. Vous devrez souscrire une assurance casco complète pour la durée du contrat. Nous pouvons vous orienter vers nos partenaires assureurs pour obtenir les meilleures offres."},
+        {"question": "Quelle est la différence entre leasing et crédit auto ?", "answer": "Avec un leasing, vous louez le véhicule et payez des mensualités sans en devenir propriétaire (sauf rachat en fin de contrat). Avec un crédit auto, vous achetez le véhicule et en devenez propriétaire dès le départ, mais les mensualités sont généralement plus élevées."},
+        {"question": "Puis-je choisir n'importe quel véhicule ?", "answer": "Oui, vous pouvez choisir parmi notre sélection de véhicules ou nous indiquer le modèle exact que vous souhaitez. Nous nous chargeons de trouver le véhicule et de négocier les meilleures conditions pour vous."},
+        {"question": "Combien de temps prend le traitement d'une demande ?", "answer": "Nous nous engageons à traiter votre demande dans les 24 à 48 heures. Une fois votre dossier approuvé, la livraison du véhicule dépend de sa disponibilité (immédiate pour les occasions, quelques semaines pour les véhicules neufs)."},
+        {"question": "Quels documents dois-je fournir ?", "answer": "Vous devrez fournir une pièce d'identité valide, vos 3 dernières fiches de paie, un justificatif de domicile et votre permis de séjour (si applicable). Tous ces documents peuvent être téléchargés directement via notre formulaire en ligne."}
+    ]},
     "process": {"title": "COMMENT ÇA MARCHE", "subtitle": "Un processus simple et rapide en 3 étapes", "steps": [{"number": "01", "title": "Choix du véhicule", "description": "Parcourez notre sélection ou indiquez-nous le véhicule de vos rêves."}, {"number": "02", "title": "Demande de leasing", "description": "Remplissez votre demande en quelques minutes. Nous nous occupons du reste."}, {"number": "03", "title": "Validation rapide", "description": "Recevez une réponse rapide et prenez le volant de votre nouveau véhicule."}]},
     "leasing_form": {"title": "FAITES VOTRE DEMANDE DE LEASING", "subtitle": "En quelques minutes, soumettez votre dossier et recevez une réponse rapide."},
-    "appointment": {"title": "PARLER AVEC UN EXPERT EASYLEAZ", "subtitle": "Prenez rendez-vous avec l'un de nos conseillers spécialisés", "calendly_url": ""},
     "contact": {"title": "CONTACTEZ-NOUS", "phone": "0799493229", "location": "Genève", "instagram_url": "https://www.instagram.com/easyleazge?igsh=dnQ5ODBxcGthMWp2", "whatsapp": "0799493229"},
-    "navbar": {"logo_text": "EASY LEAZ", "links": ["Véhicules", "Processus", "Demande", "Contact"]}
+    "navbar": {"logo_text": "EASY LEAZ", "links": ["Catalogue", "Processus", "Demande", "Contact"]}
 }
 
 @api_router.get("/cms/{section_key}")
@@ -620,17 +638,21 @@ async def seed_data():
     count = await db.vehicles.count_documents({})
     if count == 0:
         vehicles = [
-            {"id": str(uuid.uuid4()), "brand": "Mercedes-AMG", "model": "GT 63 S", "year": 2024, "mileage": 1200, "fuel": "Essence", "transmission": "Automatique", "price": 185000, "monthly_payment": 2450, "image_url": "https://images.unsplash.com/photo-1617814076231-2c58846db944?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA3MDB8MHwxfHNlYXJjaHwyfHxtZXJjZWRlcyUyMGFtZyUyMGRhcmt8ZW58MHx8fHwxNzc0MTEwNTk1fDA&ixlib=rb-4.1.0&q=85", "badge": "Occasion sélectionnée", "status": "active", "created_at": datetime.now(timezone.utc).isoformat()},
-            {"id": str(uuid.uuid4()), "brand": "Porsche", "model": "911 Carrera S", "year": 2023, "mileage": 8500, "fuel": "Essence", "transmission": "Automatique", "price": 152000, "monthly_payment": 1980, "image_url": "https://images.unsplash.com/photo-1617814076367-b759c7d7e738?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA3MDB8MHwxfHNlYXJjaHw0fHxtZXJjZWRlcyUyMGFtZyUyMGRhcmt8ZW58MHx8fHwxNzc0MTEwNTk1fDA&ixlib=rb-4.1.0&q=85", "badge": "Occasion sélectionnée", "status": "active", "created_at": datetime.now(timezone.utc).isoformat()},
-            {"id": str(uuid.uuid4()), "brand": "McLaren", "model": "720S", "year": 2023, "mileage": 3200, "fuel": "Essence", "transmission": "Automatique", "price": 265000, "monthly_payment": 3500, "image_url": "https://images.pexels.com/photos/5050537/pexels-photo-5050537.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940", "badge": "Premium", "status": "active", "created_at": datetime.now(timezone.utc).isoformat()},
-            {"id": str(uuid.uuid4()), "brand": "BMW", "model": "M4 Competition", "year": 2024, "mileage": 500, "fuel": "Essence", "transmission": "Automatique", "price": 98000, "monthly_payment": 1290, "image_url": "https://images.pexels.com/photos/3457780/pexels-photo-3457780.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940", "badge": "Neuf", "status": "active", "created_at": datetime.now(timezone.utc).isoformat()},
-            {"id": str(uuid.uuid4()), "brand": "Audi", "model": "RS e-tron GT", "year": 2024, "mileage": 200, "fuel": "Électrique", "transmission": "Automatique", "price": 145000, "monthly_payment": 1890, "image_url": "https://images.unsplash.com/photo-1712194288783-bb3bb380025b?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA2MDV8MHwxfHNlYXJjaHwzfHxNY0xhcmVuJTIwUG9yc2NoZSUyMEJNVyUyMGx1eHVyeSUyMHN1cGVyY2FyJTIwc2hvd3Jvb218ZW58MHx8fHwxNzc0MTEwNzI3fDA&ixlib=rb-4.1.0&q=85", "badge": "Neuf", "status": "active", "created_at": datetime.now(timezone.utc).isoformat()},
-            {"id": str(uuid.uuid4()), "brand": "McLaren", "model": "Artura", "year": 2024, "mileage": 800, "fuel": "Hybride", "transmission": "Automatique", "price": 235000, "monthly_payment": 3100, "image_url": "https://images.pexels.com/photos/6732611/pexels-photo-6732611.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940", "badge": "Premium", "status": "active", "created_at": datetime.now(timezone.utc).isoformat()},
+            {"id": str(uuid.uuid4()), "brand": "Mercedes-AMG", "model": "GT 63 S", "year": 2024, "mileage": 1200, "fuel": "Essence", "transmission": "Automatique", "price": 185000, "monthly_payment": 2450, "image_url": "https://images.unsplash.com/photo-1617814076231-2c58846db944?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA3MDB8MHwxfHNlYXJjaHwyfHxtZXJjZWRlcyUyMGFtZyUyMGRhcmt8ZW58MHx8fHwxNzc0MTEwNTk1fDA&ixlib=rb-4.1.0&q=85", "badge": "Occasion sélectionnée", "condition": "occasion", "status": "active", "created_at": datetime.now(timezone.utc).isoformat()},
+            {"id": str(uuid.uuid4()), "brand": "Porsche", "model": "911 Carrera S", "year": 2023, "mileage": 8500, "fuel": "Essence", "transmission": "Automatique", "price": 152000, "monthly_payment": 1980, "image_url": "https://images.unsplash.com/photo-1617814076367-b759c7d7e738?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA3MDB8MHwxfHNlYXJjaHw0fHxtZXJjZWRlcyUyMGFtZyUyMGRhcmt8ZW58MHx8fHwxNzc0MTEwNTk1fDA&ixlib=rb-4.1.0&q=85", "badge": "Occasion sélectionnée", "condition": "occasion", "status": "active", "created_at": datetime.now(timezone.utc).isoformat()},
+            {"id": str(uuid.uuid4()), "brand": "McLaren", "model": "720S", "year": 2023, "mileage": 3200, "fuel": "Essence", "transmission": "Automatique", "price": 265000, "monthly_payment": 3500, "image_url": "https://images.pexels.com/photos/5050537/pexels-photo-5050537.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940", "badge": "Premium", "condition": "occasion", "status": "active", "created_at": datetime.now(timezone.utc).isoformat()},
+            {"id": str(uuid.uuid4()), "brand": "BMW", "model": "M4 Competition", "year": 2024, "mileage": 500, "fuel": "Essence", "transmission": "Automatique", "price": 98000, "monthly_payment": 1290, "image_url": "https://images.pexels.com/photos/3457780/pexels-photo-3457780.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940", "badge": "Neuf", "condition": "neuf", "status": "active", "created_at": datetime.now(timezone.utc).isoformat()},
+            {"id": str(uuid.uuid4()), "brand": "Audi", "model": "RS e-tron GT", "year": 2024, "mileage": 200, "fuel": "Électrique", "transmission": "Automatique", "price": 145000, "monthly_payment": 1890, "image_url": "https://images.unsplash.com/photo-1712194288783-bb3bb380025b?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA2MDV8MHwxfHNlYXJjaHwzfHxNY0xhcmVuJTIwUG9yc2NoZSUyMEJNVyUyMGx1eHVyeSUyMHN1cGVyY2FyJTIwc2hvd3Jvb218ZW58MHx8fHwxNzc0MTEwNzI3fDA&ixlib=rb-4.1.0&q=85", "badge": "Neuf", "condition": "neuf", "status": "active", "created_at": datetime.now(timezone.utc).isoformat()},
+            {"id": str(uuid.uuid4()), "brand": "McLaren", "model": "Artura", "year": 2024, "mileage": 800, "fuel": "Hybride", "transmission": "Automatique", "price": 235000, "monthly_payment": 3100, "image_url": "https://images.pexels.com/photos/6732611/pexels-photo-6732611.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940", "badge": "Premium", "condition": "neuf", "status": "active", "created_at": datetime.now(timezone.utc).isoformat()},
         ]
         await db.vehicles.insert_many(vehicles)
-    cms_count = await db.cms_content.count_documents({})
-    if cms_count == 0:
-        for key, content in DEFAULT_CMS.items():
+    # Migrate existing vehicles without condition field
+    await db.vehicles.update_many({"condition": {"$exists": False}, "badge": "Neuf"}, {"$set": {"condition": "neuf"}})
+    await db.vehicles.update_many({"condition": {"$exists": False}}, {"$set": {"condition": "occasion"}})
+    # Seed CMS - add missing sections
+    for key, content in DEFAULT_CMS.items():
+        existing = await db.cms_content.find_one({"section_key": key})
+        if not existing:
             await db.cms_content.insert_one({"section_key": key, "content": content, "updated_at": datetime.now(timezone.utc).isoformat()})
     # Seed admin
     admin_count = await db.admin_users.count_documents({})

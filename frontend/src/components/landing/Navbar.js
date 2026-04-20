@@ -2,12 +2,14 @@ import { useState, useEffect } from "react";
 import { useApp } from "@/App";
 import { Menu, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 
 export const Navbar = () => {
   const { cmsData } = useApp();
   const nav = cmsData?.navbar || {};
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 50);
@@ -16,16 +18,21 @@ export const Navbar = () => {
   }, []);
 
   const links = [
-    { label: "Véhicules", href: "#vehicules" },
-    { label: "Processus", href: "#processus" },
-    { label: "Demande", href: "#demande" },
-    { label: "Contact", href: "#contact" },
+    { label: "Catalogue", href: "/catalogue", type: "route" },
+    { label: "Processus", href: "#processus", type: "scroll" },
+    { label: "FAQ", href: "#faq", type: "scroll" },
+    { label: "Demande", href: "#demande", type: "scroll" },
+    { label: "Contact", href: "#contact", type: "scroll" },
   ];
 
-  const scrollTo = (href) => {
+  const handleLink = (link) => {
     setMobileOpen(false);
-    const el = document.querySelector(href);
-    if (el) el.scrollIntoView({ behavior: "smooth" });
+    if (link.type === "route") {
+      navigate(link.href);
+    } else {
+      const el = document.querySelector(link.href);
+      if (el) el.scrollIntoView({ behavior: "smooth" });
+    }
   };
 
   return (
@@ -49,7 +56,7 @@ export const Navbar = () => {
             {links.map((link) => (
               <button
                 key={link.href}
-                onClick={() => scrollTo(link.href)}
+                onClick={() => handleLink(link)}
                 className="font-inter text-sm tracking-widest uppercase text-[#E6F7FF]/70 hover:text-[#22D3EE] transition-colors duration-300"
                 data-testid={`nav-link-${link.label.toLowerCase()}`}
               >
@@ -57,7 +64,7 @@ export const Navbar = () => {
               </button>
             ))}
             <button
-              onClick={() => scrollTo("#demande")}
+              onClick={() => handleLink({ href: "#demande", type: "scroll" })}
               className="btn-primary-easyleaz px-6 py-2.5 rounded-full text-sm font-semibold tracking-wide"
               data-testid="nav-cta-button"
             >
@@ -89,14 +96,14 @@ export const Navbar = () => {
               {links.map((link) => (
                 <button
                   key={link.href}
-                  onClick={() => scrollTo(link.href)}
+                  onClick={() => handleLink(link)}
                   className="font-cinzel text-2xl tracking-[0.15em] text-[#E6F7FF] hover:text-[#22D3EE] text-left transition-colors duration-300"
                 >
                   {link.label}
                 </button>
               ))}
               <button
-                onClick={() => scrollTo("#demande")}
+                onClick={() => handleLink({ href: "#demande", type: "scroll" })}
                 className="btn-primary-easyleaz px-8 py-4 rounded-full text-base font-semibold tracking-wide mt-4 w-fit"
               >
                 Demande de leasing
