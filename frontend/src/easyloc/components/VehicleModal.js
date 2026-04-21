@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, CalendarDays, ArrowRight, Check } from "lucide-react";
+import { X, CalendarDays, ArrowRight, Check, ChevronLeft, ChevronRight } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { format, differenceInDays } from "date-fns";
 import { fr } from "date-fns/locale";
 import axios from "axios";
 
-const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+const API = `${process.env.REACT_APP_BACKEND_URL}/api/easyloc`;
 
 export const VehicleModal = ({ vehicle, onClose }) => {
   const [dateRange, setDateRange] = useState({ from: undefined, to: undefined });
@@ -15,6 +15,11 @@ export const VehicleModal = ({ vehicle, onClose }) => {
     nom: "", prenom: "", telephone: "", email: "", message: ""
   });
   const [submitting, setSubmitting] = useState(false);
+  const [currentImg, setCurrentImg] = useState(0);
+
+  const gallery = (vehicle.images && vehicle.images.length > 0) ? vehicle.images : [vehicle.image];
+  const nextImg = () => setCurrentImg((i) => (i + 1) % gallery.length);
+  const prevImg = () => setCurrentImg((i) => (i - 1 + gallery.length) % gallery.length);
 
   const days = dateRange.from && dateRange.to
     ? differenceInDays(dateRange.to, dateRange.from) + 1
@@ -62,10 +67,52 @@ export const VehicleModal = ({ vehicle, onClose }) => {
           className="glass-card rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto"
           data-testid="vehicle-modal"
         >
-          {/* Header with Image */}
+          {/* Header with Image carousel */}
           <div className="relative">
-            <img src={vehicle.image} alt={vehicle.name} className="w-full h-56 object-cover" />
+            <img
+              src={gallery[currentImg]}
+              alt={`${vehicle.name} - photo ${currentImg + 1}`}
+              className="w-full h-72 object-cover"
+            />
             <div className="absolute inset-0 bg-gradient-to-t from-[#111114] via-[#111114]/40 to-transparent" />
+
+            {/* Carousel controls (only if multiple images) */}
+            {gallery.length > 1 && (
+              <>
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); prevImg(); }}
+                  aria-label="Image précédente"
+                  data-testid="modal-img-prev"
+                  className="absolute left-4 top-1/2 -translate-y-1/2 w-9 h-9 bg-[#0A0A0C]/60 backdrop-blur-sm rounded-full border border-[rgba(201,162,39,0.2)] flex items-center justify-center text-[#FAFAFA] hover:border-[rgba(201,162,39,0.5)] transition-colors duration-300"
+                >
+                  <ChevronLeft size={18} />
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); nextImg(); }}
+                  aria-label="Image suivante"
+                  data-testid="modal-img-next"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 w-9 h-9 bg-[#0A0A0C]/60 backdrop-blur-sm rounded-full border border-[rgba(201,162,39,0.2)] flex items-center justify-center text-[#FAFAFA] hover:border-[rgba(201,162,39,0.5)] transition-colors duration-300"
+                >
+                  <ChevronRight size={18} />
+                </button>
+                {/* Dots indicator */}
+                <div className="absolute top-4 left-1/2 -translate-x-1/2 flex items-center gap-1.5">
+                  {gallery.map((_, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); setCurrentImg(i); }}
+                      aria-label={`Aller à la photo ${i + 1}`}
+                      className={`h-1.5 rounded-full transition-all duration-300 ${
+                        i === currentImg ? "w-6 bg-[#C9A227]" : "w-1.5 bg-[rgba(250,250,250,0.35)] hover:bg-[rgba(250,250,250,0.6)]"
+                      }`}
+                    />
+                  ))}
+                </div>
+              </>
+            )}
             
             {/* Close Button */}
             <button

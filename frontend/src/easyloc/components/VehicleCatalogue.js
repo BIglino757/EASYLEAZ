@@ -136,7 +136,7 @@ export const VehicleCatalogue = ({ vehicles }) => {
                       {vehicle.name}
                     </h3>
                     <p className="text-[rgba(250,248,245,0.5)] text-sm mt-1">
-                      {vehicle.year} · {vehicle.km_included}
+                      {vehicle.year}
                     </p>
 
                     {/* Specs Grid */}

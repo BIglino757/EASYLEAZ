@@ -770,6 +770,7 @@ class ELVehicleCreate(BaseModel):
     name: str
     year: int
     image: str
+    images: list = Field(default_factory=list)
     price_day: int
     price_weekend: int
     km_included: str = "200 km/jour inclus"
@@ -802,10 +803,7 @@ EL_SEED_CONTENT = {
 }
 
 async def seed_easyloc():
-    if await db.easyloc_vehicles.count_documents({}) == 0:
-        for v in EL_SEED_VEHICLES:
-            await db.easyloc_vehicles.insert_one({"id": str(uuid.uuid4()), **v})
-        logger.info("Seeded %d easyloc vehicles", len(EL_SEED_VEHICLES))
+    # Only seed content sections — vehicles are curated manually via admin panel
     for section, content in EL_SEED_CONTENT.items():
         existing = await db.easyloc_content.find_one({"section": section}, {"_id": 0})
         if not existing:

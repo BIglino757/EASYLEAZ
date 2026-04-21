@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { Send, ArrowRight } from "lucide-react";
 import axios from "axios";
 
-const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+const API = `${process.env.REACT_APP_BACKEND_URL}/api/easyloc`;
 
 export const ReservationSection = ({ content, vehicles }) => {
   const embedUrl = content?.embed_url;
