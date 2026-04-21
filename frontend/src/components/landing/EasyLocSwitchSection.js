@@ -8,12 +8,20 @@ export const EasyLocSwitchSection = () => {
   return (
     <section
       id="easyloc-switch"
-      className="relative py-24 md:py-32 overflow-hidden"
+      className="relative py-24 md:py-32 overflow-hidden bg-[#071A1F]"
       data-testid="easyloc-switch-section"
     >
-      {/* Background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-[#071A1F] via-[#0A2A30] to-[#071A1F]" />
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(201,162,39,0.08)_0%,transparent_60%)]" />
+      {/* Subtle centered gold glow — no hard color seams against the body background */}
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background:
+            "radial-gradient(ellipse 70% 60% at 50% 50%, rgba(201,162,39,0.08) 0%, rgba(201,162,39,0.04) 30%, transparent 70%)",
+        }}
+      />
+      {/* Thin accent lines at edges (replaces the harsh section boundaries) */}
+      <div className="pointer-events-none absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#C9A227]/20 to-transparent" />
+      <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#C9A227]/20 to-transparent" />
 
       <div className="relative max-w-7xl mx-auto px-6 lg:px-8">
         <motion.div

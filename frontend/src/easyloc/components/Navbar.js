@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 export const Navbar = ({ content }) => {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 50);
@@ -62,6 +64,13 @@ export const Navbar = ({ content }) => {
               </button>
             ))}
             <button
+              data-testid="nav-cta-easyleaz"
+              onClick={() => navigate("/")}
+              className="font-inter text-xs tracking-[0.25em] uppercase text-[#22D3EE] hover:text-[#67E8F9] border border-[#22D3EE]/30 hover:border-[#22D3EE]/60 rounded-full px-4 py-2 transition-all duration-300"
+            >
+              Easy Leaz
+            </button>
+            <button
               data-testid="nav-cta-button"
               onClick={() => scrollTo("reservation")}
               className="btn-gold py-2.5 px-6 text-xs"
@@ -115,6 +124,16 @@ export const Navbar = ({ content }) => {
                 className="btn-gold mt-4 px-10"
               >
                 Réserver maintenant
+              </motion.button>
+              <motion.button
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                onClick={() => { setMobileOpen(false); navigate("/"); }}
+                data-testid="mobile-nav-cta-easyleaz"
+                className="border border-[#22D3EE]/40 text-[#22D3EE] hover:bg-[#22D3EE]/10 px-10 py-4 rounded-full text-sm uppercase tracking-widest font-medium transition-colors"
+              >
+                Basculer sur EasyLeaz
               </motion.button>
             </nav>
           </motion.div>

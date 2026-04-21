@@ -27,13 +27,21 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-[#071A1F]" data-testid="landing-page">
       <Navbar />
+      {/* 1. Accroche */}
       <HeroSection />
-      <VehicleCTASection />
+      {/* 2. Présentation de la marque */}
       <AboutSection />
+      {/* 3. Éducation — comment ça marche */}
       <ProcessSection />
+      {/* 4. Tentation — CTA vers le catalogue véhicules */}
+      <VehicleCTASection />
+      {/* 5. Conversion — formulaire de demande */}
       <LeasingFormSection />
+      {/* 6. Levée des objections */}
       <FAQSection />
+      {/* 7. Cross-sell — basculer vers EasyLoc */}
       <EasyLocSwitchSection />
+      {/* 8. Contact final */}
       <ContactSection />
       <Footer />
     </div>

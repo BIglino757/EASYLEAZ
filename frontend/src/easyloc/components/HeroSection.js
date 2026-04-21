@@ -1,7 +1,9 @@
 import { motion } from "framer-motion";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Award } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 export const HeroSection = ({ content }) => {
+  const navigate = useNavigate();
   const scrollTo = (id) => {
     const el = document.getElementById(id);
     if (el) el.scrollIntoView({ behavior: "smooth" });
@@ -88,6 +90,14 @@ export const HeroSection = ({ content }) => {
               className="btn-outline-gold"
             >
               {content?.cta_secondary || "Voir les véhicules"}
+            </button>
+            <button
+              data-testid="hero-cta-easyleaz"
+              onClick={() => navigate("/")}
+              className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-lg text-xs font-semibold tracking-[0.05em] uppercase border border-[#22D3EE]/40 text-[#22D3EE] hover:bg-[#22D3EE]/10 hover:border-[#22D3EE]/60 transition-all duration-300"
+            >
+              <Award size={16} />
+              Leasing long terme
             </button>
           </motion.div>
         </motion.div>
