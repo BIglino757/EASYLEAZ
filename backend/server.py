@@ -884,6 +884,84 @@ async def el_update_reservation_status(reservation_id: str, data: dict, admin: d
         raise HTTPException(status_code=404, detail="Reservation not found")
     return {"status": "updated"}
 
+# EasyLoc vehicle images upload
+EL_VEHICLE_UPLOAD_DIR = UPLOAD_DIR / "easyloc_vehicles"
+EL_VEHICLE_UPLOAD_DIR.mkdir(exist_ok=True)
+
+@easyloc_router.post("/admin/vehicles/{vehicle_id}/images")
+async def el_upload_vehicle_images(vehicle_id: str, files: List[UploadFile] = File(...), admin: dict = Depends(get_current_admin)):
+    vehicle = await db.easyloc_vehicles.find_one({"id": vehicle_id}, {"_id": 0})
+    if not vehicle:
+        raise HTTPException(status_code=404, detail="Vehicle not found")
+    uploaded_urls = []
+    for file in files:
+        if not file.filename:
+            continue
+        ext = Path(file.filename).suffix.lower()
+        if ext not in ALLOWED_EXTENSIONS:
+            raise HTTPException(status_code=400, detail=f"Format non autorisé: {ext}")
+        content = await file.read()
+        if len(content) > MAX_FILE_SIZE:
+            raise HTTPException(status_code=400, detail=f"Fichier trop volumineux (max 5MB): {file.filename}")
+        file_id = str(uuid.uuid4())
+        filename = f"{file_id}{ext}"
+        filepath = EL_VEHICLE_UPLOAD_DIR / filename
+        async with aiofiles.open(filepath, 'wb') as f:
+            await f.write(content)
+        uploaded_urls.append(f"/api/easyloc/uploads/{filename}")
+    if uploaded_urls:
+        existing = vehicle.get("images", []) or []
+        new_images = existing + uploaded_urls
+        update = {"images": new_images}
+        # Set main image if empty
+        if not vehicle.get("image"):
+            update["image"] = uploaded_urls[0]
+        await db.easyloc_vehicles.update_one({"id": vehicle_id}, {"$set": update})
+    updated = await db.easyloc_vehicles.find_one({"id": vehicle_id}, {"_id": 0})
+    return updated
+
+@easyloc_router.delete("/admin/vehicles/{vehicle_id}/images")
+async def el_delete_vehicle_image(vehicle_id: str, image_url: str = Query(...), admin: dict = Depends(get_current_admin)):
+    vehicle = await db.easyloc_vehicles.find_one({"id": vehicle_id}, {"_id": 0})
+    if not vehicle:
+        raise HTTPException(status_code=404, detail="Vehicle not found")
+    images = vehicle.get("images", []) or []
+    if image_url not in images:
+        raise HTTPException(status_code=404, detail="Image non trouvée")
+    # Delete file if it's a local upload
+    if image_url.startswith("/api/easyloc/uploads/"):
+        fname = image_url.rsplit("/", 1)[-1]
+        fpath = EL_VEHICLE_UPLOAD_DIR / fname
+        if fpath.exists():
+            fpath.unlink()
+    new_images = [u for u in images if u != image_url]
+    update = {"images": new_images}
+    # Update main image if needed
+    if vehicle.get("image") == image_url:
+        update["image"] = new_images[0] if new_images else ""
+    await db.easyloc_vehicles.update_one({"id": vehicle_id}, {"$set": update})
+    return await db.easyloc_vehicles.find_one({"id": vehicle_id}, {"_id": 0})
+
+@easyloc_router.post("/admin/vehicles/{vehicle_id}/main-image")
+async def el_set_main_image(vehicle_id: str, data: dict, admin: dict = Depends(get_current_admin)):
+    image_url = data.get("image_url", "")
+    vehicle = await db.easyloc_vehicles.find_one({"id": vehicle_id}, {"_id": 0})
+    if not vehicle:
+        raise HTTPException(status_code=404, detail="Vehicle not found")
+    if image_url not in (vehicle.get("images", []) or []):
+        raise HTTPException(status_code=400, detail="Image pas dans la galerie")
+    await db.easyloc_vehicles.update_one({"id": vehicle_id}, {"$set": {"image": image_url}})
+    return await db.easyloc_vehicles.find_one({"id": vehicle_id}, {"_id": 0})
+
+@easyloc_router.get("/uploads/{filename}")
+async def el_serve_upload(filename: str):
+    filepath = EL_VEHICLE_UPLOAD_DIR / filename
+    if not filepath.exists():
+        raise HTTPException(status_code=404, detail="Fichier non trouvé")
+    ext = filepath.suffix.lower()
+    media_types = {".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png"}
+    return FileResponse(str(filepath), media_type=media_types.get(ext, "application/octet-stream"))
+
 @easyloc_router.post("/seed")
 async def el_seed():
     await seed_easyloc()

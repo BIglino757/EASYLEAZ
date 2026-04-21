@@ -1,9 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Phone, Mail, MapPin, Instagram, LogOut, LayoutDashboard, Car, Calendar, FileText, Settings, Trash2, Plus, Edit, Check, X, Eye } from "lucide-react";
+import { Phone, Mail, MapPin, Instagram, LogOut, LayoutDashboard, Car, Calendar, FileText, Settings, Trash2, Plus, Edit, Check, X, Eye, Upload, Image as ImageIcon, Star } from "lucide-react";
 
 // Unified backend + admin JWT shared with EasyLeaz ("2 sites in 1")
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -112,6 +112,54 @@ export default function AdminPage() {
       await fetchData();
     } catch (e) {
       console.error(e);
+    }
+  };
+
+  // Vehicle image upload helpers (only works for existing vehicles)
+  const fileInputRef = useRef(null);
+  const [uploading, setUploading] = useState(false);
+
+  const uploadVehicleImages = async (vehicleId, fileList) => {
+    if (!vehicleId || vehicleId === "new") {
+      alert("Enregistrez d'abord le véhicule avant d'ajouter des images.");
+      return;
+    }
+    const form = new FormData();
+    Array.from(fileList).forEach((f) => form.append("files", f));
+    setUploading(true);
+    try {
+      const res = await axios.post(`${API}/admin/vehicles/${vehicleId}/images`, form, {
+        headers: { ...headers, "Content-Type": "multipart/form-data" },
+      });
+      setEditData(res.data);
+      await fetchData();
+    } catch (e) {
+      alert(`Erreur upload: ${e.response?.data?.detail || e.message}`);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const deleteVehicleImage = async (vehicleId, imageUrl) => {
+    if (!window.confirm("Supprimer cette image ?")) return;
+    try {
+      const res = await axios.delete(`${API}/admin/vehicles/${vehicleId}/images`, {
+        headers, params: { image_url: imageUrl },
+      });
+      setEditData(res.data);
+      await fetchData();
+    } catch (e) {
+      alert(`Erreur: ${e.response?.data?.detail || e.message}`);
+    }
+  };
+
+  const setMainVehicleImage = async (vehicleId, imageUrl) => {
+    try {
+      const res = await axios.post(`${API}/admin/vehicles/${vehicleId}/main-image`, { image_url: imageUrl }, { headers });
+      setEditData(res.data);
+      await fetchData();
+    } catch (e) {
+      alert(`Erreur: ${e.response?.data?.detail || e.message}`);
     }
   };
 
@@ -290,22 +338,128 @@ export default function AdminPage() {
                   <h3 className="font-cinzel text-[#D4AF37] tracking-widest text-sm mb-4">
                     {editingVehicle === "new" ? "NOUVEAU VEHICULE" : "MODIFIER VEHICULE"}
                   </h3>
+
+                  {/* Basic fields */}
                   <div className="grid grid-cols-2 gap-4">
-                    {["name", "year", "image", "price_day", "price_weekend", "km_included", "category"].map(field => (
+                    {["name", "year", "price_day", "price_weekend", "km_included", "category"].map(field => (
                       <div key={field}>
                         <Label className="text-[#A0A0A0] text-xs uppercase tracking-wider">{field}</Label>
                         <Input
-                          value={editData[field] || ""}
+                          value={editData[field] ?? ""}
                           onChange={(e) => setEditData({ ...editData, [field]: ["year", "price_day", "price_weekend", "order"].includes(field) ? Number(e.target.value) : e.target.value })}
                           className="mt-1 bg-[#0B0B0B] border-[#333333] text-[#F5F5F5] rounded-none focus:border-[#D4AF37] focus:ring-0 text-sm"
                         />
                       </div>
                     ))}
                   </div>
-                  <div className="flex gap-3 mt-4">
-                    <button onClick={saveVehicle} className="btn-gold py-2 px-6 text-xs">Enregistrer</button>
-                    <button onClick={() => setEditingVehicle(null)} className="btn-outline-gold py-2 px-6 text-xs">Annuler</button>
+
+                  {/* Specs editor */}
+                  <div className="mt-6">
+                    <Label className="text-[#A0A0A0] text-xs uppercase tracking-wider">Caractéristiques techniques</Label>
+                    <div className="grid grid-cols-2 gap-4 mt-2">
+                      {[
+                        { key: "power", label: "Puissance (ex: 306 ch)" },
+                        { key: "acceleration", label: "Accélération (ex: 0-100 en 4.7s)" },
+                        { key: "transmission", label: "Transmission (ex: Automatique DCT 7G)" },
+                        { key: "fuel", label: "Carburant (ex: Essence)" },
+                        { key: "drivetrain", label: "Transmission aux roues (ex: 4MATIC intégrale)" },
+                      ].map(({ key, label }) => (
+                        <div key={key}>
+                          <Label className="text-[#A0A0A0] text-[0.65rem] uppercase tracking-wider">{label}</Label>
+                          <Input
+                            value={editData.specs?.[key] ?? ""}
+                            onChange={(e) => setEditData({
+                              ...editData,
+                              specs: { ...(editData.specs || {}), [key]: e.target.value }
+                            })}
+                            className="mt-1 bg-[#0B0B0B] border-[#333333] text-[#F5F5F5] rounded-none focus:border-[#D4AF37] focus:ring-0 text-sm"
+                          />
+                        </div>
+                      ))}
+                    </div>
                   </div>
+
+                  {/* Image gallery (only for saved vehicles) */}
+                  {editingVehicle !== "new" && (
+                    <div className="mt-6">
+                      <div className="flex items-center justify-between mb-3">
+                        <Label className="text-[#A0A0A0] text-xs uppercase tracking-wider">Galerie photos ({(editData.images || []).length})</Label>
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          accept="image/jpeg,image/jpg,image/png"
+                          multiple
+                          className="hidden"
+                          onChange={(e) => {
+                            if (e.target.files?.length) uploadVehicleImages(editingVehicle, e.target.files);
+                            e.target.value = "";
+                          }}
+                          data-testid="vehicle-images-input"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => fileInputRef.current?.click()}
+                          disabled={uploading}
+                          data-testid="vehicle-upload-images-btn"
+                          className="inline-flex items-center gap-2 px-4 py-2 text-xs uppercase tracking-wider border border-[#D4AF37]/30 text-[#D4AF37] hover:bg-[#D4AF37]/10 transition-colors"
+                        >
+                          <Upload size={14} />
+                          {uploading ? "Envoi..." : "Ajouter des photos"}
+                        </button>
+                      </div>
+                      {(editData.images || []).length === 0 ? (
+                        <div className="border border-dashed border-[#333333] rounded p-8 text-center">
+                          <ImageIcon size={32} className="mx-auto text-[#555] mb-3" />
+                          <p className="text-[#A0A0A0] text-sm">Aucune image. JPG / PNG — max 5 MB chacune.</p>
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-4 gap-3">
+                          {(editData.images || []).map((url, i) => (
+                            <div key={url + i} className="relative group aspect-[4/3] overflow-hidden border border-[#333]">
+                              <img src={url} alt={`${editData.name} ${i + 1}`} className="w-full h-full object-cover" />
+                              {editData.image === url && (
+                                <div className="absolute top-1 left-1 flex items-center gap-1 px-2 py-1 bg-[#D4AF37] text-[#0B0B0B] text-[0.55rem] uppercase tracking-wider font-semibold rounded-sm">
+                                  <Star size={10} fill="currentColor" /> Principale
+                                </div>
+                              )}
+                              <div className="absolute inset-0 bg-[#0B0B0B]/80 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-2">
+                                {editData.image !== url && (
+                                  <button
+                                    type="button"
+                                    onClick={() => setMainVehicleImage(editingVehicle, url)}
+                                    title="Définir comme image principale"
+                                    className="p-2 text-[#D4AF37] hover:bg-[#D4AF37]/10"
+                                    data-testid={`set-main-image-${i}`}
+                                  >
+                                    <Star size={14} />
+                                  </button>
+                                )}
+                                <button
+                                  type="button"
+                                  onClick={() => deleteVehicleImage(editingVehicle, url)}
+                                  title="Supprimer cette image"
+                                  className="p-2 text-red-400 hover:bg-red-400/10"
+                                  data-testid={`delete-image-${i}`}
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="flex gap-3 mt-6">
+                    <button onClick={saveVehicle} data-testid="save-vehicle-btn" className="btn-gold py-2 px-6 text-xs">Enregistrer</button>
+                    <button onClick={() => setEditingVehicle(null)} className="btn-outline-gold py-2 px-6 text-xs">Fermer</button>
+                  </div>
+                  {editingVehicle === "new" && (
+                    <p className="text-[#A0A0A0] text-[0.7rem] mt-3">
+                      Astuce : enregistrez le véhicule puis rouvrez-le pour ajouter des photos.
+                    </p>
+                  )}
                 </div>
               )}
 
@@ -430,8 +584,10 @@ export default function AdminPage() {
               </div>
               <div className="bg-[#111111] border border-[#333333] p-6">
                 <h3 className="font-cinzel text-[#D4AF37] tracking-widest text-sm mb-4">ADMINISTRATION</h3>
-                <p className="text-[#A0A0A0] text-sm">Identifiant: <span className="text-[#F5F5F5]">admin</span></p>
-                <p className="text-[#A0A0A0] text-sm mt-1">Mot de passe par defaut: <span className="text-[#F5F5F5]">easyloc2024</span></p>
+                <p className="text-[#A0A0A0] text-sm">Login unifié pour EasyLoc + EasyLeaz :</p>
+                <p className="text-[#A0A0A0] text-sm mt-2">Email : <span className="text-[#F5F5F5]">admin@easyleaz.ch</span></p>
+                <p className="text-[#A0A0A0] text-sm mt-1">Mot de passe : <span className="text-[#F5F5F5]">easyleaz2024</span></p>
+                <p className="text-[#A0A0A0] text-[0.65rem] mt-3 italic">Le mot de passe peut être modifié directement dans la base de données.</p>
               </div>
             </div>
           )}
