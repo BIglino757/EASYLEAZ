@@ -46,10 +46,12 @@ export const Navbar = () => {
         }`}
       >
         <div className="max-w-7xl mx-auto px-6 lg:px-8 h-20 flex items-center justify-between">
-          <a href="/" className="flex items-center gap-2" data-testid="navbar-logo">
-            <span className="font-cinzel text-xl md:text-2xl font-bold tracking-[0.2em] text-[#E6F7FF]">
-              {nav.logo_text || "EASY LEAZ"}
-            </span>
+          <a href="/" className="flex items-center gap-3" data-testid="navbar-logo">
+            <img
+              src="/logos/easyleaz.png"
+              alt="EasyLeaz logo"
+              className="h-12 md:h-14 w-auto object-contain"
+            />
           </a>
 
           <div className="hidden md:flex items-center gap-10">

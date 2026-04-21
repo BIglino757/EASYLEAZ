@@ -42,12 +42,16 @@ export const Navbar = ({ content }) => {
       >
         <div className="max-w-[1400px] mx-auto px-6 lg:px-12 flex items-center justify-between h-20">
           {/* Brand */}
-          <a 
-            href="/" 
-            className="font-cinzel text-[#FAFAFA] text-lg font-semibold tracking-[0.15em] hover:text-[#C9A227] transition-colors duration-300" 
+          <a
+            href="/easyloc"
+            className="flex items-center gap-3 hover:opacity-80 transition-opacity duration-300"
             data-testid="navbar-brand"
           >
-            {content?.brand || "EASYLOC"}
+            <img
+              src="/logos/easyloc.png"
+              alt="EasyLoc logo"
+              className="h-12 md:h-14 w-auto object-contain"
+            />
           </a>
 
           {/* Desktop Navigation */}
