@@ -1,83 +1,69 @@
-# EasyLeaz - PRD
+# EasyLeaz + EasyLoc — 2 sites en 1
 
-## Problem Statement
-Premium automotive leasing landing page + CRM for EasyLeaz, Geneva. Ultra-premium dark theme with admin panel, vehicle management, global CMS, and full CRM system.
+## Original problem statement
+Intégrer EASYLOC (cloné de GitHub) comme seconde page `/easyloc` sur le site EasyLeaz existant — "2 sites en 1" — sans modifier le style d'EasyLoc. Ajouter CTAs croisés, réorganiser les sections, intégrer vidéos hero, logos, véhicule A35 AMG réel, et construire un CMS admin complet (contenu + thème + sections visibles) pour les 2 sites.
 
 ## Architecture
-- **Frontend**: React + Tailwind + Framer Motion + Shadcn UI
-- **Backend**: FastAPI + MongoDB
-- **Auth**: JWT (PyJWT + bcrypt)
-- **File Storage**: Local (/app/backend/uploads/)
-- **Theme**: Dark premium (#071A1F, #22D3EE cyan, #E6F7FF text)
-- **Fonts**: Cinzel (headings), Inter (body)
 
-## What's Been Implemented (March 2026)
+### Domain structure
+- **EasyLeaz** (leasing) — style cyan/dark — routes `/`, `/catalogue`, `/admin`
+- **EasyLoc** (location) — style doré/noir — routes `/easyloc`, `/easyloc/admin`
 
-### Landing Page
-- Hero with parallax, Vehicles slider, Process steps, Extended leasing form, Appointment section, Contact, Footer
+### Backend (`/app/backend/server.py`)
+- `api_router` (prefix `/api`) : EasyLeaz routes (cms, leads, vehicles, auth, uploads)
+- `easyloc_router` (prefix `/api/easyloc`) : EasyLoc routes (content, vehicles, reservations, uploads)
+- Collections MongoDB : `cms_content`, `leads`, `vehicles`, `admin_users` (EasyLeaz) + `easyloc_content`, `easyloc_vehicles`, `easyloc_reservations` (EasyLoc)
+- **Auth unifiée** : un seul JWT admin dans `sessionStorage.admin_jwt` donne accès aux 2 panels
 
-### CRM System (NEW)
-- JWT authentication (email + password)
-- Extended leasing form: 15+ fields + file uploads (identity doc, salary slips)
-- Leads API: POST, GET, GET/:id, PATCH, DELETE
-- CRM Dashboard with stats (total, pending, approved, rejected)
-- Lead management: table, search, filters, detail view, status updates
-- Document downloads from admin panel
-- Email notification system (SMTP configurable)
-- Backward compatibility with legacy auth
+### Frontend
+- `/app/frontend/src/App.js` — routing React Router
+- `/app/frontend/src/components/admin/` — composants admin réutilisables (AssetUpload, ThemeEditor, SectionsVisibilityEditor, CMSEditor, VehicleManager)
+- `/app/frontend/src/easyloc/` — dossier isolé EasyLoc avec wrapper `.easyloc-scope` pour isolation CSS
+- `useEasyLeazTheme` / `useEasyLocTheme` — hooks qui merge les défauts avec le thème CMS
 
-### Admin Panel (/admin)
-- JWT login (admin@easyleaz.ch / easyleaz2024)
-- 4 tabs: Dashboard, Leads, Vehicles, CMS
-- Vehicle CRUD
-- CMS global content editor
+## Implémenté (historique)
 
-## Prioritized Backlog
-- P0: Configurer SMTP Infomaniak (SMTP_USER, SMTP_PASS, SMTP_FROM, NOTIFICATION_EMAIL dans .env)
-- P0: Real vehicle images
-- P1: Lead CSV export advanced (charts, PDF reports)
-- P2: Multi-language (FR/EN)
+### Avril 2026 — Intégration de base
+- ✅ Intégration EASYLOC en tant que 2e site (routes `/easyloc`, `/easyloc/admin`)
+- ✅ Isolation CSS via `.easyloc-scope` wrapper + variables HSL shadcn scopées
+- ✅ Auth unifiée : JWT partagé dans sessionStorage
+- ✅ CTAs croisés navbar + hero + section dédiée (EasyLoc↔EasyLeaz)
+- ✅ Réorganisation logique des sections des 2 landings
+- ✅ Logos uploadés (bleu EasyLeaz, doré EasyLoc) avec fond transparent via Pillow
+- ✅ Contact + Footer EasyLeaz refaits à l'identique d'EasyLoc (4 colonnes, Instagram)
+- ✅ Vidéos hero en autoplay/muted/loop + toggle audio (les 2 sites)
+- ✅ Véhicule unique Mercedes-AMG A35 4MATIC (2021) avec 5 photos + specs correctes
+- ✅ Kilométrage retiré du catalogue EasyLoc
+- ✅ Multi-upload images véhicules EasyLoc (drag & drop admin)
+- ✅ **CMS complet "option C"** :
+  - Upload d'images/vidéos depuis le panneau admin (bouton sur les champs media)
+  - Thème dynamique : 6 couleurs éditables (primary, primary_hover, accent, background, background_alt, text) avec color picker + aperçu live
+  - Sections toggleable : activer/désactiver chaque section de la landing page (7 sections par site)
+  - CSS variables inline appliquées sur `<div>` racine des LandingPages pour thème dynamique
 
-## Next Tasks
-1. Configurer les identifiants SMTP Infomaniak dans .env pour activer les emails
-2. Remplacer les images stock par les photos véhicules du client
-3. Ajouter des rapports PDF / graphiques au dashboard
+## Tests
+- Iteration 6 (intégration) : ✅ passed
+- Iteration 7 (CMS complet) : Backend 16/16 (100%), Frontend 90% — seule amélioration mineure (data-testid sur bouton edit vehicle) corrigée
 
----
+## Backlog
 
-## 🆕 Intégration EASYLOC — "2 sites en 1" (Avril 2026)
+### P1 — Améliorations fonctionnelles
+- [ ] SMTP Infomaniak (emails de notification) — en attente credentials user
+- [ ] Mode "inline edit" : cliquer directement sur un texte sur le site public pour l'éditer (quand connecté admin)
 
-### Nouveau périmètre
-Intégration du projet EASYLOC (cloné depuis repo GitHub externe) comme seconde page `/easyloc` dans le même domaine que EasyLeaz. Les deux sites cohabitent sans se polluer mutuellement.
+### P2 — Optimisations
+- [ ] Compression vidéos hero (actuellement 75-87MB, cible ~10-15MB avec ffmpeg)
+- [ ] Multi-upload images véhicules côté EasyLeaz (comme fait sur EasyLoc)
 
-### Architecture adoptée
+### P3 — Nice to have
+- [ ] Ajout d'un favicon personnalisé par site
+- [ ] Drag & drop pour réordonner les images des véhicules
+- [ ] Historique des modifications CMS (audit log)
 
-**Backend (`/app/backend/server.py`)**
-- Nouveau router `easyloc_router` avec préfixe `/api/easyloc/*`
-- Collections MongoDB séparées : `easyloc_vehicles`, `easyloc_reservations`, `easyloc_content`
-- Seed automatique : 9 véhicules premium + 8 sections de contenu au démarrage
-- **Auth unifiée** : les routes admin EasyLoc utilisent `get_current_admin` d'EasyLeaz → un seul JWT pour les 2 panneaux
+## Credentials
+Voir `/app/memory/test_credentials.md`
 
-**Frontend (`/app/frontend/src/easyloc/`)**
-- Dossier isolé avec composants EASYLOC copiés tels quels (style préservé à 100%)
-- `context.js` — Provider local avec `API=${BACKEND_URL}/api/easyloc`
-- `styles.css` — CSS EASYLOC scopé sous `.easyloc-scope` (body/html/vars HSL shadcn) pour éviter la contamination
-- `EasyLocApp.js` — wrapper exposant `<EasyLocLanding />` et `<EasyLocAdmin />`
-- Routes ajoutées dans `App.js` : `/easyloc`, `/easyloc/admin`
-
-**CTA EasyLeaz → EasyLoc**
-- `Navbar.js` : mini CTA "EASYLOC" (lien header discret doré, `data-testid="nav-cta-easyloc"`)
-- `HeroSection.js` : 3e bouton "Louer un véhicule" (`data-testid="hero-cta-easyloc"`)
-- `EasyLocSwitchSection.js` : nouvelle section dédiée après la FAQ (visuel + CTA `easyloc-switch-cta`)
-- Mobile menu : bouton "Louer un véhicule → EasyLoc"
-
-### Tests réalisés (iteration_6.json)
-- ✅ Backend : 17/17 pytest passés
-- ✅ Frontend : home EasyLeaz intacte, `/easyloc` rend parfaitement, admin unifié fonctionne
-- ✅ Isolation CSS vérifiée — aucune régression sur EasyLeaz
-- ✅ Fix CSS : `.easyloc-scope *` réduit à `box-sizing` uniquement pour ne pas écraser Tailwind
-
-### Backlog / Améliorations futures
-- [P2] SMTP Infomaniak (en attente des credentials user) — déjà câblé dans le code
-- [P2] Interface d'upload d'images véhicule pour EasyLoc (actuellement URL d'image simple)
-- [P3] Option pour que l'admin EasyLeaz gère aussi EasyLoc via des onglets dans AdminDashboard (cohérence UX)
+## Tech stack
+- Backend : FastAPI, MongoDB (motor), JWT auth, bcrypt, aiofiles
+- Frontend : React 19, React Router 7, Tailwind, Framer Motion, axios, lucide-react
+- Media : HTML5 video, HTTP 206 Range streaming

@@ -516,12 +516,16 @@ export default function AdminPage() {
                     <div className="flex gap-2">
                       <button
                         onClick={() => { setEditingVehicle(vehicle.id); setEditData(vehicle); }}
+                        data-testid={`vehicle-edit-btn-${vehicle.id}`}
+                        aria-label="Modifier"
                         className="p-2 text-[#A0A0A0] hover:text-[#D4AF37] transition-colors"
                       >
                         <Edit size={14} />
                       </button>
                       <button
                         onClick={() => deleteVehicle(vehicle.id)}
+                        data-testid={`vehicle-delete-btn-${vehicle.id}`}
+                        aria-label="Supprimer"
                         className="p-2 text-[#A0A0A0] hover:text-red-400 transition-colors"
                       >
                         <Trash2 size={14} />
