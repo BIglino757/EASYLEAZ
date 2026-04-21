@@ -1,36 +1,53 @@
 import { useApp } from "@/App";
 import { motion, useScroll, useTransform } from "framer-motion";
-import { useRef } from "react";
-import { ChevronRight, Calendar, Key } from "lucide-react";
+import { useRef, useState } from "react";
+import { ChevronRight, Calendar, Key, Volume2, VolumeX } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 export const HeroSection = () => {
   const { cmsData } = useApp();
   const hero = cmsData?.hero || {};
   const ref = useRef(null);
+  const videoRef = useRef(null);
   const navigate = useNavigate();
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end start"] });
   const bgY = useTransform(scrollYProgress, [0, 1], ["0%", "30%"]);
   const textOpacity = useTransform(scrollYProgress, [0, 0.5], [1, 0]);
+  const [muted, setMuted] = useState(true);
 
   const scrollTo = (id) => {
     const el = document.querySelector(id);
     if (el) el.scrollIntoView({ behavior: "smooth" });
   };
 
+  const toggleMute = () => {
+    const v = videoRef.current;
+    if (!v) return;
+    v.muted = !v.muted;
+    setMuted(v.muted);
+    // Try to play if paused (some browsers block play on mute change)
+    if (!v.muted) v.play().catch(() => {});
+  };
+
   return (
     <section ref={ref} className="relative h-screen overflow-hidden" data-testid="hero-section">
-      {/* Background image with parallax */}
+      {/* Background video with parallax */}
       <motion.div className="absolute inset-0 z-0" style={{ y: bgY }}>
-        <img
-          src={hero.background_image || "https://images.unsplash.com/photo-1617814076231-2c58846db944?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA3MDB8MHwxfHNlYXJjaHwyfHxtZXJjZWRlcyUyMGFtZyUyMGRhcmt8ZW58MHx8fHwxNzc0MTEwNTk1fDA&ixlib=rb-4.1.0&q=85"}
-          alt="Véhicule premium"
+        <video
+          ref={videoRef}
+          src="/videos/easyleaz-hero.mp4"
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="auto"
           className="w-full h-[120%] object-cover"
+          data-testid="hero-video"
         />
       </motion.div>
 
-      {/* Overlay gradient */}
-      <div className="absolute inset-0 z-[1] bg-hero-overlay" />
+      {/* Overlay gradient — reduced opacity so video stays visible */}
+      <div className="absolute inset-0 z-[1] bg-hero-overlay opacity-50" />
 
       {/* Scan line effect */}
       <div className="absolute inset-0 z-[2] overflow-hidden pointer-events-none opacity-[0.03]">
@@ -114,6 +131,20 @@ export const HeroSection = () => {
           <span className="font-inter text-[10px] tracking-[0.3em] uppercase text-[#E6F7FF]/30">Scroll</span>
         </motion.div>
       </motion.div>
+
+      {/* Audio toggle button — fixed at bottom-right of hero */}
+      <button
+        onClick={toggleMute}
+        aria-label={muted ? "Activer le son" : "Couper le son"}
+        data-testid="hero-audio-toggle"
+        className="absolute bottom-8 right-8 z-20 w-12 h-12 rounded-full bg-[#071A1F]/70 backdrop-blur-md border border-[#22D3EE]/30 hover:border-[#22D3EE]/60 hover:bg-[#071A1F]/90 flex items-center justify-center transition-all duration-300 group"
+      >
+        {muted ? (
+          <VolumeX size={18} className="text-[#E6F7FF]/70 group-hover:text-[#22D3EE] transition-colors" />
+        ) : (
+          <Volume2 size={18} className="text-[#22D3EE] transition-colors" />
+        )}
+      </button>
     </section>
   );
 };

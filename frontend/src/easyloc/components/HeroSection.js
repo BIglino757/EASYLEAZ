@@ -1,32 +1,47 @@
 import { motion } from "framer-motion";
-import { ChevronDown, Award } from "lucide-react";
+import { ChevronDown, Award, Volume2, VolumeX } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useRef, useState } from "react";
 
 export const HeroSection = ({ content }) => {
   const navigate = useNavigate();
+  const videoRef = useRef(null);
+  const [muted, setMuted] = useState(true);
+
   const scrollTo = (id) => {
     const el = document.getElementById(id);
     if (el) el.scrollIntoView({ behavior: "smooth" });
   };
 
+  const toggleMute = () => {
+    const v = videoRef.current;
+    if (!v) return;
+    v.muted = !v.muted;
+    setMuted(v.muted);
+    if (!v.muted) v.play().catch(() => {});
+  };
+
   return (
     <section data-testid="hero-section" className="relative min-h-screen w-full overflow-hidden">
-      {/* Background Image */}
+      {/* Background Video */}
       <div className="absolute inset-0">
-        <motion.img
-          initial={{ scale: 1.05 }}
-          animate={{ scale: 1 }}
-          transition={{ duration: 2, ease: [0.16, 1, 0.3, 1] }}
-          src="https://images.unsplash.com/photo-1668037069509-ba4c569475b1?w=1920&q=90"
-          alt="Véhicule premium"
+        <video
+          ref={videoRef}
+          src="/videos/easyloc-hero.mp4"
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="auto"
           className="w-full h-full object-cover"
+          data-testid="hero-video"
         />
-        
-        {/* VERY SMOOTH and LONG gradient - starts from top */}
-        <div className="absolute inset-0 bg-hero-overlay" />
-        
+
+        {/* VERY SMOOTH and LONG gradient - reduced opacity so video is visible */}
+        <div className="absolute inset-0 bg-hero-overlay opacity-60" />
+
         {/* Subtle gold tint at very bottom only - NO ANIMATION */}
-        <div 
+        <div
           className="absolute bottom-0 left-0 right-0 h-[40%]"
           style={{
             background: 'linear-gradient(to top, rgba(201, 162, 39, 0.03) 0%, transparent 100%)'
@@ -120,6 +135,20 @@ export const HeroSection = ({ content }) => {
           </motion.div>
         </motion.div>
       </div>
+
+      {/* Audio toggle button — fixed at bottom-right of hero */}
+      <button
+        onClick={toggleMute}
+        aria-label={muted ? "Activer le son" : "Couper le son"}
+        data-testid="hero-audio-toggle"
+        className="absolute bottom-8 right-8 z-20 w-12 h-12 rounded-full bg-[#080705]/70 backdrop-blur-md border border-[#C9A227]/30 hover:border-[#C9A227]/60 hover:bg-[#080705]/90 flex items-center justify-center transition-all duration-300 group"
+      >
+        {muted ? (
+          <VolumeX size={18} className="text-[#FAF8F5]/70 group-hover:text-[#C9A227] transition-colors" />
+        ) : (
+          <Volume2 size={18} className="text-[#C9A227] transition-colors" />
+        )}
+      </button>
     </section>
   );
 };
