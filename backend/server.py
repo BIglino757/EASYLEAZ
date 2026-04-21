@@ -36,8 +36,12 @@ JWT_EXPIRATION_HOURS = 24
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'easyleaz2024')
 UPLOAD_DIR = ROOT_DIR / 'uploads'
 UPLOAD_DIR.mkdir(exist_ok=True)
+ASSETS_DIR = UPLOAD_DIR / 'cms_assets'
+ASSETS_DIR.mkdir(exist_ok=True)
 MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
+MAX_ASSET_SIZE = 200 * 1024 * 1024  # 200MB for videos
 ALLOWED_EXTENSIONS = {'.pdf', '.jpg', '.jpeg', '.png'}
+ALLOWED_ASSET_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.webp', '.mp4', '.webm', '.mov'}
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -686,7 +690,10 @@ DEFAULT_CMS = {
     "process": {"title": "COMMENT ÇA MARCHE", "subtitle": "Un processus simple et rapide en 3 étapes", "steps": [{"number": "01", "title": "Choix du véhicule", "description": "Parcourez notre sélection ou indiquez-nous le véhicule de vos rêves."}, {"number": "02", "title": "Demande de leasing", "description": "Remplissez votre demande en quelques minutes. Nous nous occupons du reste."}, {"number": "03", "title": "Validation rapide", "description": "Recevez une réponse rapide et prenez le volant de votre nouveau véhicule."}]},
     "leasing_form": {"title": "FAITES VOTRE DEMANDE DE LEASING", "subtitle": "En quelques minutes, soumettez votre dossier et recevez une réponse rapide."},
     "contact": {"title": "CONTACTEZ-NOUS", "phone": "0799493229", "location": "Genève", "instagram_url": "https://www.instagram.com/easyleazge?igsh=dnQ5ODBxcGthMWp2", "whatsapp": "0799493229"},
-    "navbar": {"logo_text": "EASY LEAZ", "links": ["Catalogue", "Processus", "Demande", "Contact"]}
+    "navbar": {"logo_text": "EASY LEAZ", "links": ["Catalogue", "Processus", "Demande", "Contact"]},
+    "theme": {"primary": "#22D3EE", "primary_hover": "#0EA5B7", "accent": "#C9A227", "background": "#071A1F", "background_alt": "#0A2A30", "text": "#E6F7FF"},
+    "sections_config": {"about": True, "process": True, "vehicle_cta": True, "leasing_form": True, "faq": True, "easyloc_switch": True, "contact": True},
+    "hero_media": {"type": "video", "url": "/videos/easyleaz-hero.mp4", "overlay_opacity": 0.5}
 }
 
 @api_router.get("/cms/{section_key}")
@@ -749,7 +756,49 @@ async def seed_data():
     return {"success": True, "message": "Données initiales créées"}
 
 # ═══════════════════════════════════════════════════════════════════
-# EASYLOC — Second site "2-in-1". All routes prefixed /api/easyloc/*
+# CMS Assets Upload (shared by EasyLeaz + EasyLoc, admin-only)
+# Supports images (jpg/png/webp) and videos (mp4/webm/mov) up to 200MB
+# ═══════════════════════════════════════════════════════════════════
+
+@api_router.post("/cms/assets")
+async def upload_cms_asset(file: UploadFile = File(...), admin: dict = Depends(get_current_admin)):
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="Fichier manquant")
+    ext = Path(file.filename).suffix.lower()
+    if ext not in ALLOWED_ASSET_EXTENSIONS:
+        raise HTTPException(status_code=400, detail=f"Format non autorisé: {ext}")
+    content = await file.read()
+    if len(content) > MAX_ASSET_SIZE:
+        raise HTTPException(status_code=400, detail="Fichier trop volumineux (max 200MB)")
+    file_id = str(uuid.uuid4())
+    filename = f"{file_id}{ext}"
+    filepath = ASSETS_DIR / filename
+    async with aiofiles.open(filepath, 'wb') as f:
+        await f.write(content)
+    return {"url": f"/api/cms/assets/{filename}", "filename": filename, "size": len(content)}
+
+@api_router.get("/cms/assets/{filename}")
+async def serve_cms_asset(filename: str):
+    filepath = ASSETS_DIR / filename
+    if not filepath.exists():
+        raise HTTPException(status_code=404, detail="Fichier non trouvé")
+    ext = filepath.suffix.lower()
+    media_types = {
+        ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".webp": "image/webp",
+        ".mp4": "video/mp4", ".webm": "video/webm", ".mov": "video/quicktime",
+    }
+    return FileResponse(str(filepath), media_type=media_types.get(ext, "application/octet-stream"))
+
+@api_router.delete("/cms/assets/{filename}")
+async def delete_cms_asset(filename: str, admin: dict = Depends(get_current_admin)):
+    filepath = ASSETS_DIR / filename
+    if filepath.exists():
+        filepath.unlink()
+    return {"deleted": filename}
+
+
+# ═══════════════════════════════════════════════════════════════════
+# EasyLoc — Second site "2-in-1". All routes prefixed /api/easyloc/*
 # Collections: easyloc_vehicles, easyloc_reservations, easyloc_content
 # Admin auth: unified with EasyLeaz JWT (via get_current_admin)
 # ═══════════════════════════════════════════════════════════════════
@@ -800,6 +849,9 @@ EL_SEED_CONTENT = {
     "reservation_form": {"title": "Faire une demande de reservation", "subtitle": "Remplissez le formulaire ci-dessous et nous vous recontacterons dans les plus brefs delais.", "embed_url": ""},
     "navbar": {"brand": "EASYLOC", "links": ["Vehicules", "Comment ca marche", "Reservation", "Contact"]},
     "footer": {"brand": "EASYLOC", "tagline": "Location de vehicules premium a Geneve", "copyright": "2025 EasyLoc. Tous droits reserves."},
+    "theme": {"primary": "#C9A227", "primary_hover": "#D4AF37", "accent": "#22D3EE", "background": "#080705", "background_alt": "#0C0A07", "text": "#FAF8F5"},
+    "sections_config": {"vehicles": True, "process": True, "reservation_form": True, "appointment": True, "reservation_cta": True, "easyleaz_switch": True, "contact": True},
+    "hero_media": {"type": "video", "url": "/videos/easyloc-hero.mp4", "overlay_opacity": 0.6},
 }
 
 async def seed_easyloc():

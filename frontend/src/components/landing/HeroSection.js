@@ -1,4 +1,5 @@
 import { useApp } from "@/App";
+import { useEasyLeazTheme } from "@/hooks/useEasyLeazTheme";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { useRef, useState } from "react";
 import { ChevronRight, Calendar, Key, Volume2, VolumeX } from "lucide-react";
@@ -7,6 +8,7 @@ import { useNavigate } from "react-router-dom";
 export const HeroSection = () => {
   const { cmsData } = useApp();
   const hero = cmsData?.hero || {};
+  const { hero_media } = useEasyLeazTheme();
   const ref = useRef(null);
   const videoRef = useRef(null);
   const navigate = useNavigate();
@@ -25,29 +27,39 @@ export const HeroSection = () => {
     if (!v) return;
     v.muted = !v.muted;
     setMuted(v.muted);
-    // Try to play if paused (some browsers block play on mute change)
     if (!v.muted) v.play().catch(() => {});
   };
 
+  const isVideo = hero_media.type === "video" || /\.(mp4|webm|mov)(\?|$)/i.test(hero_media.url || "");
+
   return (
     <section ref={ref} className="relative h-screen overflow-hidden" data-testid="hero-section">
-      {/* Background video with parallax */}
+      {/* Background media (video or image) with parallax */}
       <motion.div className="absolute inset-0 z-0" style={{ y: bgY }}>
-        <video
-          ref={videoRef}
-          src="/videos/easyleaz-hero.mp4"
-          autoPlay
-          muted
-          loop
-          playsInline
-          preload="auto"
-          className="w-full h-[120%] object-cover"
-          data-testid="hero-video"
-        />
+        {isVideo ? (
+          <video
+            ref={videoRef}
+            src={hero_media.url}
+            autoPlay
+            muted
+            loop
+            playsInline
+            preload="auto"
+            className="w-full h-[120%] object-cover"
+            data-testid="hero-video"
+          />
+        ) : (
+          <img
+            src={hero_media.url}
+            alt="Hero"
+            className="w-full h-[120%] object-cover"
+            data-testid="hero-image"
+          />
+        )}
       </motion.div>
 
-      {/* Overlay gradient — reduced opacity so video stays visible */}
-      <div className="absolute inset-0 z-[1] bg-hero-overlay opacity-50" />
+      {/* Overlay gradient — opacity configurable via CMS */}
+      <div className="absolute inset-0 z-[1] bg-hero-overlay" style={{ opacity: hero_media.overlay_opacity ?? 0.5 }} />
 
       {/* Scan line effect */}
       <div className="absolute inset-0 z-[2] overflow-hidden pointer-events-none opacity-[0.03]">

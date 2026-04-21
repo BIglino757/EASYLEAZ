@@ -5,6 +5,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Save, Loader2, Check, ChevronDown, ChevronUp } from "lucide-react";
+import { AssetUpload } from "@/components/admin/AssetUpload";
+
+// Field name patterns that should trigger a media upload UI
+const MEDIA_FIELD_PATTERNS = /image|photo|video|url$|logo|background|media|avatar|icon/i;
 
 const SectionEditor = ({ section, token, API }) => {
   const [content, setContent] = useState(section.content);
@@ -37,13 +41,20 @@ const SectionEditor = ({ section, token, API }) => {
 
   const sectionLabels = {
     hero: "Section Hero",
+    hero_media: "Média du Hero (vidéo / image)",
     vehicles: "Section Véhicules",
+    vehicle_cta: "Section CTA Véhicules",
+    about: "Section À propos",
     process: "Section Processus",
+    faq: "Section FAQ",
     leasing_form: "Section Formulaire",
     appointment: "Section Rendez-vous",
     contact: "Section Contact",
     navbar: "Barre de navigation",
   };
+
+  // Skip theme and sections_config (dedicated tabs handle these)
+  if (section.section_key === "theme" || section.section_key === "sections_config") return null;
 
   return (
     <div className="glass-card rounded-xl overflow-hidden" data-testid={`cms-section-${section.section_key}`}>
@@ -84,10 +95,21 @@ const SectionEditor = ({ section, token, API }) => {
             }
             if (typeof value === "object") return null;
             const isLong = typeof value === "string" && value.length > 80;
+            const isMedia = MEDIA_FIELD_PATTERNS.test(key);
             return (
               <div key={key} className="space-y-1">
                 <Label className="text-xs text-[#E6F7FF]/50 uppercase tracking-wider">{key.replace(/_/g, " ")}</Label>
-                {isLong ? (
+                {isMedia ? (
+                  <div className="space-y-2">
+                    <Input
+                      value={value}
+                      onChange={(e) => updateField(key, e.target.value)}
+                      placeholder="URL ou upload via bouton"
+                      className="bg-[#0E2F36]/30 border-[#22D3EE]/10 text-[#E6F7FF] h-9 text-sm rounded-lg"
+                    />
+                    <AssetUpload value={value} onChange={(url) => updateField(key, url)} token={token} theme="cyan" />
+                  </div>
+                ) : isLong ? (
                   <Textarea
                     value={value}
                     onChange={(e) => updateField(key, e.target.value)}

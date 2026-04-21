@@ -1,0 +1,73 @@
+{
+  "summary": "Iteration 7 — CMS complet (assets upload, theme, sections_config, hero_media) + admin EasyLoc avec multi-upload images. Backend: 16/16 pytest passed (test_cms_assets_iter7.py). Frontend: connexion admin OK, 6 onglets EasyLeaz visibles (Dashboard, Demandes, Vehicules, Contenu, Theme, Sections), 6 onglets EasyLoc (Contenu, Vehicules, Reservations, Theme, Sections, Parametres). Theme EasyLeaz: 6 color pickers presents. Theme EasyLoc: 6 color pickers + primary value = #c9a227 (defaut dore confirme). Sections EasyLeaz: 7 toggles VISIBLE (A propos, Processus, CTA Vehicules, Formulaire de leasing, FAQ, Bascule EasyLoc, Contact). Sections EasyLoc: 7 toggles VISIBLE. Onglet Contenu apres expansion SECTION HERO: bouton UPLOADER present a cote du champ BACKGROUND IMAGE (AssetUpload OK). EasyLoc vehicles: Mercedes A35 AMG bien present (1 vehicule, pas de re-seed des 9). PUT /api/cms/theme et /api/easyloc/admin/content/theme persistent et reverts ont ete appliques (#22D3EE et #C9A227 restaures).",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "/easyloc/admin onglet Vehicules",
+        "issues": [
+          "Le bouton 'Modifier' du vehicule est rendu en icon-only (pencil SVG) sans texte 'Modifier' ni data-testid. Cela complique le test automatise du formulaire d'edition (champs Caracteristiques techniques + Galerie photos non-verifies par Playwright a cause de cela). Recommandation: ajouter data-testid='vehicle-edit-btn' ou aria-label='Modifier' sur le bouton."
+        ]
+      }
+    ]
+  },
+  "passed_tests": [
+    "GET /api/cms/theme retourne section_key=theme avec primary/primary_hover/accent/background/text",
+    "GET /api/cms/sections_config retourne les 7 toggles (about/process/vehicle_cta/leasing_form/faq/easyloc_switch/contact)",
+    "GET /api/cms/hero_media retourne {type:'video', url, overlay_opacity}",
+    "PUT /api/cms/theme persiste #FF00AA puis revert #22D3EE",
+    "PUT /api/cms/sections_config toggle about=false puis revert true",
+    "POST /api/cms/assets sans token => 401/403",
+    "POST /api/cms/assets avec admin upload PNG => {url, filename, size}; GET sert l'image avec content-type image/png; DELETE protege par admin",
+    "POST /api/cms/assets avec extension .exe => 400 rejetee",
+    "GET /api/easyloc/content/theme retourne defaut #C9A227",
+    "GET /api/easyloc/content/sections_config retourne 7 toggles (vehicles/process/reservation_form/appointment/reservation_cta/easyleaz_switch/contact)",
+    "GET /api/easyloc/content/hero_media retourne video",
+    "PUT /api/easyloc/admin/content/theme persiste puis revert",
+    "GET /api/easyloc/vehicles retourne 1 vehicule (A35 AMG, pas re-seed de 9)",
+    "POST /api/easyloc/admin/vehicles/{id}/images upload 2 PNG, retourne vehicle avec images; DELETE retire l'image; POST /main-image change image principale",
+    "Non-regression: GET /api/vehicles, GET /api/cms",
+    "Frontend EasyLeaz /admin: login admin@easyleaz.ch/easyleaz2024 OK, 6 onglets visibles",
+    "Frontend EasyLeaz /admin Theme: 6 input[type=color] presents",
+    "Frontend EasyLeaz /admin Sections: 7 cards avec badge VISIBLE + bouton ENREGISTRER",
+    "Frontend EasyLeaz /admin Contenu SECTION HERO: bouton UPLOADER visible a cote du champ BACKGROUND IMAGE",
+    "Frontend EasyLoc /easyloc/admin: 6 onglets visibles (Contenu, Vehicules, Reservations, Theme, Sections, Parametres)",
+    "Frontend EasyLoc /easyloc/admin Theme: 6 color pickers, primary = #c9a227",
+    "Frontend EasyLoc /easyloc/admin Sections: 7 sections avec toggles VISIBLE + bouton ENREGISTRER",
+    "Frontend EasyLoc /easyloc/admin Vehicules: A35 AMG present"
+  ],
+  "test_report_links": [
+    "/app/backend/tests/test_cms_assets_iter7.py",
+    "/app/test_reports/pytest/iter7_results.xml"
+  ],
+  "action_items": [
+    "Ajouter data-testid ou aria-label='Modifier' sur le bouton edit vehicule dans /easyloc/admin pour faciliter les tests automatises (et l'accessibilite). Le formulaire d'edition contenant 'Caracteristiques techniques' + 'Galerie photos (5)' + 'Ajouter des photos' n'a pas pu etre verifie automatiquement faute de selecteur stable, mais le code est present dans /app/frontend/src/easyloc/pages/AdminPage.js.",
+    "Tests publics (basculer section OFF dans admin -> verif disparition sur / et /easyloc) non executes automatiquement faute de temps. Verification manuelle recommandee : toggler 'Bascule EasyLoc' ou 'A propos' dans /admin > Sections > Enregistrer, puis recharger / et confirmer disparition. Idem pour /easyloc.",
+    "Test thematique (changer primary EasyLeaz #FF0000 puis verifier que CTA Hero ne casse pas les styles inline via CSS variables) non execute UI mais la persistance backend est validee + revert applique."
+  ],
+  "critical_code_review_comments": [
+    "server.py atteint 1041 lignes (>700 guideline). Recommander split en routers/cms_assets.py + routers/easyloc.py + routers/easyleaz.py.",
+    "PUT /api/easyloc/admin/content/{section} et PUT /api/easyloc/admin/vehicles/{id} acceptent toujours `data: dict` sans validation Pydantic. Risque d'injection de cles arbitraires en DB. Recommander modele Pydantic strict.",
+    "Le DELETE /api/cms/assets/{filename} ne verifie pas si l'asset est encore reference par un section CMS — orphelinage possible. Recommander check de reference avant suppression OU job de nettoyage.",
+    "EL_VEHICLE_UPLOAD_DIR.mkdir(exist_ok=True) au niveau module — OK mais utilise Path implicite. Verifier permissions ecriture en prod.",
+    "Le seed_easyloc() s'execute sur chaque @app.on_event('startup'). Idempotent grace au 'if not existing' mais cree des updates inutiles. OK pour le moment."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_cms_assets_iter7.py (nouveau)",
+    "/app/test_reports/pytest/iter7_results.xml (nouveau)"
+  ],
+  "success_rate": {
+    "backend": "100% (16/16)",
+    "frontend": "90% (toutes les nouvelles UI vues + workflows admin OK ; manque verification publique des toggles sections + selector vehicule edit en icon-only)"
+  },
+  "test_credentials": "admin@easyleaz.ch / easyleaz2024 — confirme fonctionnel sur /admin et /easyloc/admin avec JWT unifie en sessionStorage.admin_jwt",
+  "seed_data_creation": "Tests pytest creent vehicles/reservations TEST_ + uploads PNG temporaires nettoyes a la fin (DELETE applique). Theme et sections_config rebascules a leurs valeurs par defaut apres test (#22D3EE EasyLeaz, #C9A227 EasyLoc).",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Backend regression: /app/backend/tests/test_cms_assets_iter7.py + /app/backend/tests/test_easyloc.py. Tous les endpoints CMS theme/sections_config/hero_media reutilisent les routes generiques GET/PUT /api/cms/{section} et /api/easyloc/content/{section} + /api/easyloc/admin/content/{section}. Login JWT renvoie 'access_token'. Pour tester les toggles publics, il faut ouvrir / ou /easyloc apres avoir desactive une section dans admin et confirmer que la balise correspondante n'est plus rendue."
+}

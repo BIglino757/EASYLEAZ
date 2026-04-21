@@ -3,7 +3,22 @@ import axios from "axios";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Phone, Mail, MapPin, Instagram, LogOut, LayoutDashboard, Car, Calendar, FileText, Settings, Trash2, Plus, Edit, Check, X, Eye, Upload, Image as ImageIcon, Star } from "lucide-react";
+import { Phone, Mail, MapPin, Instagram, LogOut, LayoutDashboard, Car, Calendar, FileText, Settings, Trash2, Plus, Edit, Check, X, Eye, Upload, Image as ImageIcon, Star, Palette, Layers } from "lucide-react";
+import { ThemeEditor } from "@/components/admin/ThemeEditor";
+import { SectionsVisibilityEditor } from "@/components/admin/SectionsVisibilityEditor";
+import { AssetUpload } from "@/components/admin/AssetUpload";
+
+const ELC_DEFAULT_THEME = { primary: "#C9A227", primary_hover: "#D4AF37", accent: "#22D3EE", background: "#080705", background_alt: "#0C0A07", text: "#FAF8F5" };
+const ELC_DEFAULT_SECTIONS = { vehicles: true, process: true, reservation_form: true, appointment: true, reservation_cta: true, easyleaz_switch: true, contact: true };
+const ELC_SECTIONS = [
+  { key: "vehicles", label: "Catalogue véhicules", description: "Section de présentation des véhicules" },
+  { key: "process", label: "Processus", description: "Section 'Comment ça fonctionne'" },
+  { key: "reservation_form", label: "Formulaire de réservation", description: "Section demande de réservation" },
+  { key: "appointment", label: "Prise de rendez-vous", description: "Section conseiller Calendly" },
+  { key: "reservation_cta", label: "CTA Réservation", description: "Section d'appel à la réservation" },
+  { key: "easyleaz_switch", label: "Bascule EasyLeaz", description: "Section cross-sell vers /" },
+  { key: "contact", label: "Contact", description: "Section coordonnées" },
+];
 
 // Unified backend + admin JWT shared with EasyLeaz ("2 sites in 1")
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -202,11 +217,14 @@ export default function AdminPage() {
     { id: "content", label: "Contenu", icon: FileText },
     { id: "vehicles", label: "Vehicules", icon: Car },
     { id: "reservations", label: "Reservations", icon: Calendar },
+    { id: "theme", label: "Theme", icon: Palette },
+    { id: "sections", label: "Sections", icon: Layers },
     { id: "settings", label: "Parametres", icon: Settings },
   ];
 
   const sectionLabels = {
     hero: "Section Hero",
+    hero_media: "Média du Hero (vidéo/image)",
     process: "Section Processus",
     reservation_cta: "Section CTA",
     appointment: "Section Rendez-vous",
@@ -215,6 +233,10 @@ export default function AdminPage() {
     navbar: "Navigation",
     footer: "Pied de page"
   };
+
+  // Hide theme / sections_config from Content tab (dedicated tabs handle these)
+  const contentEntries = Object.entries(content).filter(([k]) => !["theme", "sections_config"].includes(k));
+  const mediaFieldPattern = /image|photo|video|url$|logo|background|media|avatar|icon/i;
 
   return (
     <div className="min-h-screen bg-[#0B0B0B] flex" data-testid="admin-dashboard">
@@ -255,7 +277,7 @@ export default function AdminPage() {
           {activeTab === "content" && (
             <div className="space-y-6">
               <h2 className="font-cinzel text-2xl text-[#F5F5F5] tracking-widest mb-8">GESTION DU CONTENU</h2>
-              {Object.entries(content).map(([section, data]) => (
+              {contentEntries.map(([section, data]) => (
                 <div key={section} className="bg-[#111111] border border-[#333333] p-6" data-testid={`content-section-${section}`}>
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="font-cinzel text-[#D4AF37] tracking-widest text-sm">{sectionLabels[section] || section.toUpperCase()}</h3>
@@ -276,30 +298,50 @@ export default function AdminPage() {
                   </div>
                   {editingSection === section ? (
                     <div className="space-y-3">
-                      {Object.entries(editData).map(([key, value]) => (
-                        <div key={key}>
-                          <Label className="text-[#A0A0A0] text-xs uppercase tracking-wider">{key}</Label>
-                          {typeof value === "string" ? (
-                            value.length > 80 ? (
-                              <Textarea
+                      {Object.entries(editData).map(([key, value]) => {
+                        const isMedia = mediaFieldPattern.test(key);
+                        return (
+                          <div key={key}>
+                            <Label className="text-[#A0A0A0] text-xs uppercase tracking-wider">{key}</Label>
+                            {typeof value === "string" ? (
+                              isMedia ? (
+                                <div className="space-y-2 mt-1">
+                                  <Input
+                                    value={value}
+                                    onChange={(e) => setEditData({ ...editData, [key]: e.target.value })}
+                                    placeholder="URL ou upload via bouton"
+                                    className="bg-[#0B0B0B] border-[#333333] text-[#F5F5F5] rounded-none focus:border-[#D4AF37] focus:ring-0 text-sm"
+                                  />
+                                  <AssetUpload value={value} onChange={(url) => setEditData({ ...editData, [key]: url })} token={token} theme="gold" />
+                                </div>
+                              ) : value.length > 80 ? (
+                                <Textarea
+                                  value={value}
+                                  onChange={(e) => setEditData({ ...editData, [key]: e.target.value })}
+                                  className="mt-1 bg-[#0B0B0B] border-[#333333] text-[#F5F5F5] rounded-none focus:border-[#D4AF37] focus:ring-0 text-sm"
+                                />
+                              ) : (
+                                <Input
+                                  value={value}
+                                  onChange={(e) => setEditData({ ...editData, [key]: e.target.value })}
+                                  className="mt-1 bg-[#0B0B0B] border-[#333333] text-[#F5F5F5] rounded-none focus:border-[#D4AF37] focus:ring-0 text-sm"
+                                />
+                              )
+                            ) : typeof value === "number" ? (
+                              <Input
+                                type="number"
                                 value={value}
-                                onChange={(e) => setEditData({ ...editData, [key]: e.target.value })}
+                                onChange={(e) => setEditData({ ...editData, [key]: Number(e.target.value) })}
                                 className="mt-1 bg-[#0B0B0B] border-[#333333] text-[#F5F5F5] rounded-none focus:border-[#D4AF37] focus:ring-0 text-sm"
                               />
                             ) : (
-                              <Input
-                                value={value}
-                                onChange={(e) => setEditData({ ...editData, [key]: e.target.value })}
-                                className="mt-1 bg-[#0B0B0B] border-[#333333] text-[#F5F5F5] rounded-none focus:border-[#D4AF37] focus:ring-0 text-sm"
-                              />
-                            )
-                          ) : (
-                            <pre className="mt-1 text-xs text-[#A0A0A0] bg-[#0B0B0B] p-3 border border-[#333333] overflow-auto">
-                              {JSON.stringify(value, null, 2)}
-                            </pre>
-                          )}
-                        </div>
-                      ))}
+                              <pre className="mt-1 text-xs text-[#A0A0A0] bg-[#0B0B0B] p-3 border border-[#333333] overflow-auto">
+                                {JSON.stringify(value, null, 2)}
+                              </pre>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   ) : (
                     <div className="space-y-2">
@@ -527,6 +569,37 @@ export default function AdminPage() {
                   ))}
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Theme Tab */}
+          {activeTab === "theme" && (
+            <div className="text-[#F5F5F5]">
+              <ThemeEditor
+                api={`${process.env.REACT_APP_BACKEND_URL}/api/easyloc`}
+                contentEndpoint="content"
+                adminEndpoint="admin/content"
+                token={token}
+                defaults={ELC_DEFAULT_THEME}
+                accent="#D4AF37"
+                label="EasyLoc"
+              />
+            </div>
+          )}
+
+          {/* Sections Tab */}
+          {activeTab === "sections" && (
+            <div className="text-[#F5F5F5]">
+              <SectionsVisibilityEditor
+                api={`${process.env.REACT_APP_BACKEND_URL}/api/easyloc`}
+                contentEndpoint="content"
+                adminEndpoint="admin/content"
+                token={token}
+                defaults={ELC_DEFAULT_SECTIONS}
+                sections={ELC_SECTIONS}
+                accent="#D4AF37"
+                label="EasyLoc"
+              />
             </div>
           )}
 

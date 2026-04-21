@@ -8,7 +8,21 @@ import { VehicleManager } from "@/components/admin/VehicleManager";
 import { CMSEditor } from "@/components/admin/CMSEditor";
 import { LeadsManager } from "@/components/admin/LeadsManager";
 import { CRMStats } from "@/components/admin/CRMStats";
-import { Lock, Car, FileEdit, Inbox, LogOut, LayoutDashboard } from "lucide-react";
+import { ThemeEditor } from "@/components/admin/ThemeEditor";
+import { SectionsVisibilityEditor } from "@/components/admin/SectionsVisibilityEditor";
+import { Lock, Car, FileEdit, Inbox, LogOut, LayoutDashboard, Palette, Layers } from "lucide-react";
+
+const EL_DEFAULT_THEME = { primary: "#22D3EE", primary_hover: "#0EA5B7", accent: "#C9A227", background: "#071A1F", background_alt: "#0A2A30", text: "#E6F7FF" };
+const EL_DEFAULT_SECTIONS = { about: true, process: true, vehicle_cta: true, leasing_form: true, faq: true, easyloc_switch: true, contact: true };
+const EL_SECTIONS = [
+  { key: "about", label: "À propos", description: "Section 'Qui sommes-nous ?'" },
+  { key: "process", label: "Processus", description: "Section 'Comment ça marche'" },
+  { key: "vehicle_cta", label: "CTA Véhicules", description: "Section d'appel vers le catalogue" },
+  { key: "leasing_form", label: "Formulaire de leasing", description: "Section formulaire de demande" },
+  { key: "faq", label: "FAQ", description: "Questions fréquentes" },
+  { key: "easyloc_switch", label: "Bascule EasyLoc", description: "Section cross-sell vers /easyloc" },
+  { key: "contact", label: "Contact", description: "Section coordonnées" },
+];
 
 export default function AdminDashboard() {
   const { API } = useApp();
@@ -160,6 +174,12 @@ export default function AdminDashboard() {
             <TabsTrigger value="cms" className="data-[state=active]:bg-[#22D3EE]/10 data-[state=active]:text-[#22D3EE] text-[#E6F7FF]/60 rounded-lg px-4 py-2 font-inter text-sm flex items-center gap-2" data-testid="admin-tab-cms">
               <FileEdit size={16} /> Contenu
             </TabsTrigger>
+            <TabsTrigger value="theme" className="data-[state=active]:bg-[#22D3EE]/10 data-[state=active]:text-[#22D3EE] text-[#E6F7FF]/60 rounded-lg px-4 py-2 font-inter text-sm flex items-center gap-2" data-testid="admin-tab-theme">
+              <Palette size={16} /> Thème
+            </TabsTrigger>
+            <TabsTrigger value="sections" className="data-[state=active]:bg-[#22D3EE]/10 data-[state=active]:text-[#22D3EE] text-[#E6F7FF]/60 rounded-lg px-4 py-2 font-inter text-sm flex items-center gap-2" data-testid="admin-tab-sections">
+              <Layers size={16} /> Sections
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="dashboard">
@@ -173,6 +193,12 @@ export default function AdminDashboard() {
           </TabsContent>
           <TabsContent value="cms">
             <CMSEditor token={token} />
+          </TabsContent>
+          <TabsContent value="theme">
+            <ThemeEditor api={API} contentEndpoint="cms" adminEndpoint="cms" token={token} defaults={EL_DEFAULT_THEME} accent="#22D3EE" label="EasyLeaz" />
+          </TabsContent>
+          <TabsContent value="sections">
+            <SectionsVisibilityEditor api={API} contentEndpoint="cms" adminEndpoint="cms" token={token} defaults={EL_DEFAULT_SECTIONS} sections={EL_SECTIONS} accent="#22D3EE" label="EasyLeaz" />
           </TabsContent>
         </Tabs>
       </div>

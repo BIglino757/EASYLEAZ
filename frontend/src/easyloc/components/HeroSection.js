@@ -2,11 +2,13 @@ import { motion } from "framer-motion";
 import { ChevronDown, Award, Volume2, VolumeX } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useRef, useState } from "react";
+import { useEasyLocTheme } from "../useTheme";
 
 export const HeroSection = ({ content }) => {
   const navigate = useNavigate();
   const videoRef = useRef(null);
   const [muted, setMuted] = useState(true);
+  const { hero_media } = useEasyLocTheme();
 
   const scrollTo = (id) => {
     const el = document.getElementById(id);
@@ -21,24 +23,35 @@ export const HeroSection = ({ content }) => {
     if (!v.muted) v.play().catch(() => {});
   };
 
+  const isVideo = hero_media.type === "video" || /\.(mp4|webm|mov)(\?|$)/i.test(hero_media.url || "");
+
   return (
     <section data-testid="hero-section" className="relative min-h-screen w-full overflow-hidden">
-      {/* Background Video */}
+      {/* Background Media */}
       <div className="absolute inset-0">
-        <video
-          ref={videoRef}
-          src="/videos/easyloc-hero.mp4"
-          autoPlay
-          muted
-          loop
-          playsInline
-          preload="auto"
-          className="w-full h-full object-cover"
-          data-testid="hero-video"
-        />
+        {isVideo ? (
+          <video
+            ref={videoRef}
+            src={hero_media.url}
+            autoPlay
+            muted
+            loop
+            playsInline
+            preload="auto"
+            className="w-full h-full object-cover"
+            data-testid="hero-video"
+          />
+        ) : (
+          <img
+            src={hero_media.url}
+            alt="Hero"
+            className="w-full h-full object-cover"
+            data-testid="hero-image"
+          />
+        )}
 
-        {/* VERY SMOOTH and LONG gradient - reduced opacity so video is visible */}
-        <div className="absolute inset-0 bg-hero-overlay opacity-60" />
+        {/* Gradient overlay - opacity configurable via CMS */}
+        <div className="absolute inset-0 bg-hero-overlay" style={{ opacity: hero_media.overlay_opacity ?? 0.6 }} />
 
         {/* Subtle gold tint at very bottom only - NO ANIMATION */}
         <div

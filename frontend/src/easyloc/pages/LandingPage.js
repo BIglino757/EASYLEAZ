@@ -1,4 +1,5 @@
 import { useApp } from "../context";
+import { useEasyLocTheme } from "../useTheme";
 import { Navbar } from "../components/Navbar";
 import { HeroSection } from "../components/HeroSection";
 import { VehicleCatalogue } from "../components/VehicleCatalogue";
@@ -12,26 +13,29 @@ import { Footer } from "../components/Footer";
 
 export default function LandingPage() {
   const { content, vehicles } = useApp();
+  const { theme, sections } = useEasyLocTheme();
+
+  const themeVars = {
+    "--elc-primary": theme.primary,
+    "--elc-primary-hover": theme.primary_hover,
+    "--elc-accent": theme.accent,
+    "--elc-bg": theme.background,
+    "--elc-bg-alt": theme.background_alt,
+    "--elc-text": theme.text,
+    background: theme.background,
+  };
 
   return (
-    <div className="min-h-screen bg-[#080705]" data-testid="landing-page">
+    <div className="min-h-screen" style={themeVars} data-testid="landing-page">
       <Navbar content={content?.navbar} />
-      {/* 1. Accroche */}
       <HeroSection content={content?.hero} />
-      {/* 2. Tentation — catalogue premium */}
-      <VehicleCatalogue vehicles={vehicles} />
-      {/* 3. Éducation — processus de location */}
-      <ProcessSection content={content?.process} />
-      {/* 4. Conversion — formulaire de réservation */}
-      <ReservationSection content={content?.reservation_form} vehicles={vehicles} />
-      {/* 5. Alternative — prendre rendez-vous avec un conseiller */}
-      <AppointmentSection content={content?.appointment} />
-      {/* 6. Rappel final — CTA de réservation */}
-      <CTASection content={content?.reservation_cta} />
-      {/* 7. Cross-sell — basculer vers EasyLeaz (leasing long terme) */}
-      <EasyLeazSwitchSection />
-      {/* 8. Contact */}
-      <ContactSection content={content?.contact} />
+      {sections.vehicles && <VehicleCatalogue vehicles={vehicles} />}
+      {sections.process && <ProcessSection content={content?.process} />}
+      {sections.reservation_form && <ReservationSection content={content?.reservation_form} vehicles={vehicles} />}
+      {sections.appointment && <AppointmentSection content={content?.appointment} />}
+      {sections.reservation_cta && <CTASection content={content?.reservation_cta} />}
+      {sections.easyleaz_switch && <EasyLeazSwitchSection />}
+      {sections.contact && <ContactSection content={content?.contact} />}
       <Footer content={content?.footer} />
     </div>
   );

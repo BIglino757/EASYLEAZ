@@ -1,4 +1,5 @@
 import { useApp } from "@/App";
+import { useEasyLeazTheme } from "@/hooks/useEasyLeazTheme";
 import { Navbar } from "@/components/landing/Navbar";
 import { HeroSection } from "@/components/landing/HeroSection";
 import { VehicleCTASection } from "@/components/landing/VehicleCTASection";
@@ -12,6 +13,7 @@ import { Footer } from "@/components/landing/Footer";
 
 export default function LandingPage() {
   const { loading } = useApp();
+  const { theme, sections } = useEasyLeazTheme();
 
   if (loading) {
     return (
@@ -24,25 +26,28 @@ export default function LandingPage() {
     );
   }
 
+  // Inline CSS variables allow admin-edited theme to override defaults
+  const themeVars = {
+    "--el-primary": theme.primary,
+    "--el-primary-hover": theme.primary_hover,
+    "--el-accent": theme.accent,
+    "--el-bg": theme.background,
+    "--el-bg-alt": theme.background_alt,
+    "--el-text": theme.text,
+    background: theme.background,
+  };
+
   return (
-    <div className="min-h-screen bg-[#071A1F]" data-testid="landing-page">
+    <div className="min-h-screen" style={themeVars} data-testid="landing-page">
       <Navbar />
-      {/* 1. Accroche */}
       <HeroSection />
-      {/* 2. Présentation de la marque */}
-      <AboutSection />
-      {/* 3. Éducation — comment ça marche */}
-      <ProcessSection />
-      {/* 4. Tentation — CTA vers le catalogue véhicules */}
-      <VehicleCTASection />
-      {/* 5. Conversion — formulaire de demande */}
-      <LeasingFormSection />
-      {/* 6. Levée des objections */}
-      <FAQSection />
-      {/* 7. Cross-sell — basculer vers EasyLoc */}
-      <EasyLocSwitchSection />
-      {/* 8. Contact final */}
-      <ContactSection />
+      {sections.about && <AboutSection />}
+      {sections.process && <ProcessSection />}
+      {sections.vehicle_cta && <VehicleCTASection />}
+      {sections.leasing_form && <LeasingFormSection />}
+      {sections.faq && <FAQSection />}
+      {sections.easyloc_switch && <EasyLocSwitchSection />}
+      {sections.contact && <ContactSection />}
       <Footer />
     </div>
   );
