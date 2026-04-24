@@ -63,27 +63,29 @@ export const VehicleCatalogue = ({ vehicles }) => {
             </p>
           </div>
 
-          {/* Carousel Navigation */}
-          <div className="flex gap-3">
-            <button
-              onClick={() => scroll("left")}
-              disabled={!canScrollLeft}
-              className="carousel-nav-btn w-12 h-12 rounded-full flex items-center justify-center"
-              aria-label="Précédent"
-              data-testid="carousel-prev"
-            >
-              <ChevronLeft size={20} className="text-[#FAF8F5]" />
-            </button>
-            <button
-              onClick={() => scroll("right")}
-              disabled={!canScrollRight}
-              className="carousel-nav-btn w-12 h-12 rounded-full flex items-center justify-center"
-              aria-label="Suivant"
-              data-testid="carousel-next"
-            >
-              <ChevronRight size={20} className="text-[#FAF8F5]" />
-            </button>
-          </div>
+          {/* Carousel Navigation — hidden when only one vehicle */}
+          {vehicles.length > 1 && (
+            <div className="flex gap-3">
+              <button
+                onClick={() => scroll("left")}
+                disabled={!canScrollLeft}
+                className="carousel-nav-btn w-12 h-12 rounded-full flex items-center justify-center"
+                aria-label="Précédent"
+                data-testid="carousel-prev"
+              >
+                <ChevronLeft size={20} className="text-[#FAF8F5]" />
+              </button>
+              <button
+                onClick={() => scroll("right")}
+                disabled={!canScrollRight}
+                className="carousel-nav-btn w-12 h-12 rounded-full flex items-center justify-center"
+                aria-label="Suivant"
+                data-testid="carousel-next"
+              >
+                <ChevronRight size={20} className="text-[#FAF8F5]" />
+              </button>
+            </div>
+          )}
         </motion.div>
 
         {/* Horizontal Carousel */}

@@ -40,7 +40,7 @@ export const EasyLeazSwitchSection = () => {
             className="relative aspect-[4/3] rounded-2xl overflow-hidden border border-[#22D3EE]/20 order-2 md:order-1"
           >
             <img
-              src="https://images.unsplash.com/photo-1617814076231-2c58846db944?w=1600&q=80"
+              src="/sections/golf8r-top.jpeg"
               alt="EasyLeaz — Leasing premium"
               className="w-full h-full object-cover"
             />

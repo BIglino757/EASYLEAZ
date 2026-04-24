@@ -1,0 +1,48 @@
+{
+  "summary": "Frontend-only testing: EasyLeaz accordion form, 2 new EasyLoc section images (a35-wheel, golf8r-top), and mobile/desktop responsiveness. All core behaviors verified on desktop 1920x1080 and mobile 390x844. Images return HTTP 200 and load with correct naturalWidth. Accordion correctly toggles form open/close with animation. 2 test-assertion false negatives (case-sensitive text check on CSS-uppercased buttons). Only real issue: 4-6px horizontal overflow on mobile viewport (minor cosmetic).",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "Mobile 390x844 — home (/) and /easyloc",
+        "issues": [
+          "Minor horizontal overflow: home scrollWidth=394 (4px), /easyloc scrollWidth=396 (6px) vs viewport 390. Causes slight horizontal scroll.",
+          "Home mobile: stats counters '.text-center > .font-cinzel text-2xl font-bold text-[#22D3EE]' render at right=394 (4px past viewport). Likely the 4-column stats grid not collapsing cleanly on mobile or decorative counters using fixed width.",
+          "/easyloc mobile: ReservationSection form (data-testid='reservation-form') positioned at left=54, right=396 (exceeds by 6px). Also decorative 'gold-line' spans render at left=-6. Inner glass-card appears to have a horizontal offset on mobile stack.",
+          "A stray <p> element renders at left=370, right=500 (width=130) likely clipped by parent overflow; worth verifying it's intentional (decorative badge) vs leaking content."
+        ]
+      }
+    ]
+  },
+  "test_report_links": [],
+  "action_items": [
+    "Fix mobile 4-6px horizontal overflow on both / and /easyloc. Candidate CSS changes: add `overflow-x: hidden` on body/html OR reduce negative margins on decorative '.gold-line' spans and ensure `.max-w-[1400px]` container with `px-6` keeps children within viewport. Check stats counter block on home and ReservationSection glass-card alignment on mobile (currently shows form left offset of +54px instead of +24px).",
+    "(Optional) Verify the decorative <p> at right=500 (width=130) inside contact/reservation section is intentional and hidden behind overflow clip; consider adding visibility:hidden or aria-hidden."
+  ],
+  "critical_code_review_comments": [
+    "LeasingFormSection.js is 456 lines — consider splitting into smaller sub-components (personal info, financial, documents) for maintainability (>400 line threshold).",
+    "Accordion implementation is clean: useState + AnimatePresence + height:auto animation works correctly. aria-expanded and aria-controls attributes set correctly — good a11y.",
+    "ReservationSection.js: The decorative image (<img src='/sections/a35-wheel.jpeg'>) is wrapped in `hidden lg:block` — by design it is NOT shown on mobile. This matches the product intent (decorative asset for desktop only).",
+    "EasyLeazSwitchSection.js: golf8r-top.jpeg is correctly shown on both mobile and desktop (grid item, not hidden). Image loads (naturalWidth=1920).",
+    "Mobile horizontal overflow is a site-wide layout issue, not specific to the new features being tested."
+  ],
+  "updated_files": [],
+  "success_rate": { "backend": "n/a (frontend-only testing)", "frontend": "93% (25/27 real checks; 2 false negatives from test case-sensitivity; 3 horizontal-overflow failures are same underlying issue)" },
+  "test_credentials": "admin@easyleaz.ch / easyleaz2024 (not needed for this run)",
+  "seed_data_creation": "none",
+  "retest_needed": true,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Images /sections/a35-wheel.jpeg (1080px) and /sections/golf8r-top.jpeg (1920px) are live and return 200. EasyLeaz accordion works: toggle at [data-testid='leasing-form-toggle'] shows 'REMPLIR MA DEMANDE' closed and 'FERMER LE FORMULAIRE' open; form [data-testid='leasing-form'] is gated by AnimatePresence. When writing text assertions, remember the buttons use CSS uppercase so use .toLowerCase() comparisons or check for partial matches. Mobile horizontal overflow is 4-6px on both pages — measured via document.documentElement.scrollWidth vs clientWidth. The culprits are: stats counters on home (right=394) and reservation form glass-card on /easyloc (right=396). Desktop has zero overflow on both pages. The decorative image wrapper in ReservationSection is explicitly 'hidden lg:block' so mobile should NOT display a35-wheel image (by design).",
+  "rca_of_the_issue": {
+    "issue": "Mobile horizontal overflow (4-6px) on / and /easyloc",
+    "reproduction": "Set viewport 390x844, navigate to each page, read document.documentElement.scrollWidth — returns 394 or 396 instead of 390.",
+    "root_cause_candidates": [
+      "Decorative '.gold-line' spans on /easyloc render at left=-6 (negative offset), suggesting a margin-left negative trick that pushes past px-6 padding.",
+      "Home stats counter grid: fourth column ends at right=394 — likely the 4-col grid doesn't collapse to 2-col on narrow mobile, so cells overflow.",
+      "ReservationSection form container appears indented by 54px instead of 24px on mobile — possibly a residual grid-col or margin from desktop grid-cols-2 layout not fully reset on mobile."
+    ],
+    "mitigation": "Quick fix: add `overflow-x: hidden` to body or main layout wrapper in index.css. Proper fix: audit negative-margin usages of '.gold-line', tighten px-6 mobile padding, and ensure grid on ReservationSection collapses cleanly at sm: breakpoint."
+  }
+}

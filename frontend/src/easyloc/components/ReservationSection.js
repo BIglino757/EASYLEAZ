@@ -100,7 +100,7 @@ export const ReservationSection = ({ content, vehicles }) => {
             <div className="mt-10 hidden lg:block">
               <div className="glass-card rounded-2xl overflow-hidden">
                 <img
-                  src="https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=600&q=80"
+                  src="/sections/a35-wheel.jpeg"
                   alt="Véhicule premium"
                   className="w-full h-48 object-cover opacity-60"
                 />

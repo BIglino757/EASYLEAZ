@@ -1,10 +1,10 @@
 import { useState, useRef } from "react";
 import { useApp } from "@/App";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CheckCircle, Send, Loader2, Upload, X, FileText } from "lucide-react";
+import { CheckCircle, Send, Loader2, Upload, X, FileText, ChevronDown } from "lucide-react";
 import axios from "axios";
 
 const inputClass = "bg-[#0E2F36]/50 border-[#22D3EE]/15 text-[#E6F7FF] placeholder:text-[#E6F7FF]/25 focus:border-[#22D3EE]/60 focus:ring-[#22D3EE]/20 h-12 rounded-xl";
@@ -16,6 +16,7 @@ export const LeasingFormSection = () => {
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
+  const [formOpen, setFormOpen] = useState(false);
   const identityRef = useRef(null);
   const salaryRef = useRef(null);
 
@@ -170,7 +171,32 @@ export const LeasingFormSection = () => {
           <p className="font-inter text-base text-[#E6F7FF]/50 mt-3 max-w-lg mx-auto">
             {cms.subtitle || "En quelques minutes, soumettez votre dossier et recevez une réponse rapide."}
           </p>
+
+          {/* CTA to open the form (mobile-friendly accordion) */}
+          <button
+            type="button"
+            onClick={() => setFormOpen((v) => !v)}
+            aria-expanded={formOpen}
+            aria-controls="leasing-form-panel"
+            data-testid="leasing-form-toggle"
+            className="mt-8 inline-flex items-center gap-3 px-8 py-4 rounded-full bg-gradient-to-r from-[#22D3EE] to-[#0EA5B7] hover:from-[#0EA5B7] hover:to-[#0891A3] text-[#071A1F] font-semibold tracking-wide uppercase text-sm transition-all duration-300 shadow-[0_4px_30px_-8px_rgba(34,211,238,0.5)] hover:shadow-[0_8px_40px_-8px_rgba(34,211,238,0.7)]"
+          >
+            {formOpen ? "Fermer le formulaire" : (cms.cta_open || "Remplir ma demande")}
+            <ChevronDown size={18} className={`transition-transform duration-300 ${formOpen ? "rotate-180" : ""}`} />
+          </button>
         </motion.div>
+
+        <AnimatePresence initial={false}>
+          {formOpen && (
+            <motion.div
+              key="leasing-form-panel"
+              id="leasing-form-panel"
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+              style={{ overflow: "hidden" }}
+            >
 
         <motion.form
           onSubmit={handleSubmit}
@@ -421,6 +447,9 @@ export const LeasingFormSection = () => {
             )}
           </button>
         </motion.form>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </section>
   );
