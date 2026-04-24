@@ -729,17 +729,7 @@ async def update_cms_section(section_key: str, data: CMSContentUpdate, admin: di
 
 @api_router.post("/seed")
 async def seed_data():
-    count = await db.vehicles.count_documents({})
-    if count == 0:
-        vehicles = [
-            {"id": str(uuid.uuid4()), "brand": "Mercedes-AMG", "model": "GT 63 S", "year": 2024, "mileage": 1200, "fuel": "Essence", "transmission": "Automatique", "price": 185000, "monthly_payment": 2450, "image_url": "https://images.unsplash.com/photo-1617814076231-2c58846db944?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA3MDB8MHwxfHNlYXJjaHwyfHxtZXJjZWRlcyUyMGFtZyUyMGRhcmt8ZW58MHx8fHwxNzc0MTEwNTk1fDA&ixlib=rb-4.1.0&q=85", "badge": "Occasion sélectionnée", "condition": "occasion", "status": "active", "created_at": datetime.now(timezone.utc).isoformat()},
-            {"id": str(uuid.uuid4()), "brand": "Porsche", "model": "911 Carrera S", "year": 2023, "mileage": 8500, "fuel": "Essence", "transmission": "Automatique", "price": 152000, "monthly_payment": 1980, "image_url": "https://images.unsplash.com/photo-1617814076367-b759c7d7e738?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA3MDB8MHwxfHNlYXJjaHw0fHxtZXJjZWRlcyUyMGFtZyUyMGRhcmt8ZW58MHx8fHwxNzc0MTEwNTk1fDA&ixlib=rb-4.1.0&q=85", "badge": "Occasion sélectionnée", "condition": "occasion", "status": "active", "created_at": datetime.now(timezone.utc).isoformat()},
-            {"id": str(uuid.uuid4()), "brand": "McLaren", "model": "720S", "year": 2023, "mileage": 3200, "fuel": "Essence", "transmission": "Automatique", "price": 265000, "monthly_payment": 3500, "image_url": "https://images.pexels.com/photos/5050537/pexels-photo-5050537.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940", "badge": "Premium", "condition": "occasion", "status": "active", "created_at": datetime.now(timezone.utc).isoformat()},
-            {"id": str(uuid.uuid4()), "brand": "BMW", "model": "M4 Competition", "year": 2024, "mileage": 500, "fuel": "Essence", "transmission": "Automatique", "price": 98000, "monthly_payment": 1290, "image_url": "https://images.pexels.com/photos/3457780/pexels-photo-3457780.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940", "badge": "Neuf", "condition": "neuf", "status": "active", "created_at": datetime.now(timezone.utc).isoformat()},
-            {"id": str(uuid.uuid4()), "brand": "Audi", "model": "RS e-tron GT", "year": 2024, "mileage": 200, "fuel": "Électrique", "transmission": "Automatique", "price": 145000, "monthly_payment": 1890, "image_url": "https://images.unsplash.com/photo-1712194288783-bb3bb380025b?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA2MDV8MHwxfHNlYXJjaHwzfHxNY0xhcmVuJTIwUG9yc2NoZSUyMEJNVyUyMGx1eHVyeSUyMHN1cGVyY2FyJTIwc2hvd3Jvb218ZW58MHx8fHwxNzc0MTEwNzI3fDA&ixlib=rb-4.1.0&q=85", "badge": "Neuf", "condition": "neuf", "status": "active", "created_at": datetime.now(timezone.utc).isoformat()},
-            {"id": str(uuid.uuid4()), "brand": "McLaren", "model": "Artura", "year": 2024, "mileage": 800, "fuel": "Hybride", "transmission": "Automatique", "price": 235000, "monthly_payment": 3100, "image_url": "https://images.pexels.com/photos/6732611/pexels-photo-6732611.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940", "badge": "Premium", "condition": "neuf", "status": "active", "created_at": datetime.now(timezone.utc).isoformat()},
-        ]
-        await db.vehicles.insert_many(vehicles)
+    # Vehicles auto-seed disabled — vehicles are curated manually via admin panel
     # Migrate existing vehicles without condition field
     await db.vehicles.update_many({"condition": {"$exists": False}, "badge": "Neuf"}, {"$set": {"condition": "neuf"}})
     await db.vehicles.update_many({"condition": {"$exists": False}}, {"$set": {"condition": "occasion"}})
