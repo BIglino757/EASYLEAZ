@@ -42,7 +42,17 @@
     color: #E6F7FF;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    overflow-x: hidden;
+    overflow-x: clip;
+    overflow-y: auto;
+  }
+
+  html {
+    overflow-x: clip;
+  }
+
+  #root {
+    overflow-x: clip;
+    max-width: 100vw;
   }
 
   ::selection {
