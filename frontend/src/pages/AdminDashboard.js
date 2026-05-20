@@ -10,7 +10,7 @@ import { LeadsManager } from "@/components/admin/LeadsManager";
 import { CRMStats } from "@/components/admin/CRMStats";
 import { ThemeEditor } from "@/components/admin/ThemeEditor";
 import { SectionsVisibilityEditor } from "@/components/admin/SectionsVisibilityEditor";
-import { Lock, Car, FileEdit, Inbox, LogOut, LayoutDashboard, Palette, Layers } from "lucide-react";
+import { Lock, Car, FileEdit, Inbox, LogOut, LayoutDashboard, Palette, Layers, Eye, EyeOff } from "lucide-react";
 
 const EL_DEFAULT_THEME = { primary: "#22D3EE", primary_hover: "#0EA5B7", accent: "#C9A227", background: "#071A1F", background_alt: "#0A2A30", text: "#E6F7FF" };
 const EL_DEFAULT_SECTIONS = { about: true, process: true, vehicle_cta: true, leasing_form: true, faq: true, easyloc_switch: true, contact: true };
@@ -30,6 +30,7 @@ export default function AdminDashboard() {
   const [loginMode, setLoginMode] = useState("jwt"); // jwt or legacy
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [token, setToken] = useState("");
   const [adminInfo, setAdminInfo] = useState(null);
   const [error, setError] = useState("");
@@ -100,7 +101,7 @@ export default function AdminDashboard() {
               <Lock size={28} className="text-[#22D3EE]" />
             </div>
             <h1 className="font-cinzel text-2xl font-bold text-[#E6F7FF] tracking-wide uppercase">Administration</h1>
-            <p className="font-inter text-sm text-[#E6F7FF]/50 mt-2">CRM EasyLeaz</p>
+            <p className="font-inter text-sm text-[#E6F7FF]/50 mt-2">Accès restreint</p>
           </div>
 
           {/* Toggle login mode */}
@@ -117,11 +118,16 @@ export default function AdminDashboard() {
             <form onSubmit={handleJWTLogin} className="space-y-4">
               <div className="space-y-2">
                 <Label className="font-inter text-sm text-[#E6F7FF]/70">Email</Label>
-                <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="admin@easyleaz.ch" className="bg-[#0E2F36]/50 border-[#22D3EE]/15 text-[#E6F7FF] placeholder:text-[#E6F7FF]/25 focus:border-[#22D3EE]/60 h-12 rounded-xl" data-testid="admin-email-input" />
+                <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Insérez l'email admin" autoComplete="off" className="bg-[#0E2F36]/50 border-[#22D3EE]/15 text-[#E6F7FF] placeholder:text-[#E6F7FF]/25 focus:border-[#22D3EE]/60 h-12 rounded-xl" data-testid="admin-email-input" />
               </div>
               <div className="space-y-2">
                 <Label className="font-inter text-sm text-[#E6F7FF]/70">Mot de passe</Label>
-                <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Votre mot de passe" className="bg-[#0E2F36]/50 border-[#22D3EE]/15 text-[#E6F7FF] placeholder:text-[#E6F7FF]/25 focus:border-[#22D3EE]/60 h-12 rounded-xl" data-testid="admin-password-input" />
+                <div className="relative">
+                  <button type="button" onClick={() => setShowPassword((v) => !v)} aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#E6F7FF]/40 hover:text-[#22D3EE] transition-colors" data-testid="admin-password-toggle">
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                  <Input type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Insérez le mot de passe admin" autoComplete="off" className="bg-[#0E2F36]/50 border-[#22D3EE]/15 text-[#E6F7FF] placeholder:text-[#E6F7FF]/25 focus:border-[#22D3EE]/60 h-12 pl-11 rounded-xl" data-testid="admin-password-input" />
+                </div>
               </div>
               {error && <p className="font-inter text-sm text-red-400" data-testid="admin-login-error">{error}</p>}
               <button type="submit" className="btn-primary-easyleaz w-full py-3 rounded-full font-semibold tracking-wide" data-testid="admin-login-button">Connexion</button>
@@ -130,7 +136,12 @@ export default function AdminDashboard() {
             <form onSubmit={handleLegacyLogin} className="space-y-4">
               <div className="space-y-2">
                 <Label className="font-inter text-sm text-[#E6F7FF]/70">Mot de passe</Label>
-                <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Entrez le mot de passe" className="bg-[#0E2F36]/50 border-[#22D3EE]/15 text-[#E6F7FF] placeholder:text-[#E6F7FF]/25 focus:border-[#22D3EE]/60 h-12 rounded-xl" data-testid="admin-password-input" />
+                <div className="relative">
+                  <button type="button" onClick={() => setShowPassword((v) => !v)} aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#E6F7FF]/40 hover:text-[#22D3EE] transition-colors" data-testid="admin-password-toggle-legacy">
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                  <Input type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Insérez le mot de passe admin" autoComplete="off" className="bg-[#0E2F36]/50 border-[#22D3EE]/15 text-[#E6F7FF] placeholder:text-[#E6F7FF]/25 focus:border-[#22D3EE]/60 h-12 pl-11 rounded-xl" data-testid="admin-password-input" />
+                </div>
               </div>
               {error && <p className="font-inter text-sm text-red-400" data-testid="admin-login-error">{error}</p>}
               <button type="submit" className="btn-primary-easyleaz w-full py-3 rounded-full font-semibold tracking-wide" data-testid="admin-login-button">Connexion</button>
@@ -147,7 +158,7 @@ export default function AdminDashboard() {
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <a href="/" className="font-cinzel text-lg font-bold tracking-[0.2em] text-[#E6F7FF]">EASY LEAZ</a>
-            <span className="font-inter text-xs text-[#22D3EE] tracking-widest uppercase bg-[#22D3EE]/10 px-3 py-1 rounded-full">CRM</span>
+            <span className="font-inter text-xs text-[#22D3EE] tracking-widest uppercase bg-[#22D3EE]/10 px-3 py-1 rounded-full">Admin</span>
           </div>
           <div className="flex items-center gap-4">
             {adminInfo && <span className="font-inter text-xs text-[#E6F7FF]/50 hidden md:block">{adminInfo.email}</span>}

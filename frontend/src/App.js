@@ -56,9 +56,9 @@ function App() {
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/catalogue" element={<CatalogPage />} />
-          <Route path="/admin" element={<AdminDashboard />} />
+          <Route path="/admin-elc2345" element={<AdminDashboard />} />
           <Route path="/easyloc" element={<EasyLocLanding />} />
-          <Route path="/easyloc/admin" element={<EasyLocAdmin />} />
+          <Route path="/easyloc/admin-elc2345" element={<EasyLocAdmin />} />
         </Routes>
       </BrowserRouter>
     </AppContext.Provider>

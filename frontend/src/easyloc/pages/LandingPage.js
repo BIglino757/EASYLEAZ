@@ -1,5 +1,6 @@
 import { useApp } from "../context";
 import { useEasyLocTheme } from "../useTheme";
+import { MetaTags } from "../../components/MetaTags";
 import { Navbar } from "../components/Navbar";
 import { HeroSection } from "../components/HeroSection";
 import { VehicleCatalogue } from "../components/VehicleCatalogue";
@@ -27,6 +28,7 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen" style={themeVars} data-testid="landing-page">
+      <MetaTags site="easyloc" />
       <Navbar content={content?.navbar} />
       <HeroSection content={content?.hero} />
       {sections.vehicles && <VehicleCatalogue vehicles={vehicles} />}

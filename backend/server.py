@@ -182,11 +182,32 @@ async def get_current_admin_info(admin: dict = Depends(get_current_admin)):
 async def seed_admin():
     existing = await db.admin_users.count_documents({})
     if existing == 0:
-        hashed = bcrypt.hashpw("easyleaz2024".encode(), bcrypt.gensalt()).decode()
-        admin = {"id": str(uuid.uuid4()), "email": "admin@easyleaz.ch", "password": hashed, "name": "Admin EasyLeaz", "created_at": datetime.now(timezone.utc).isoformat()}
+        # Use ADMIN_PASSWORD from env (mandatory in production) - fallback for dev only
+        pwd = os.environ.get('ADMIN_PASSWORD', 'easyleaz2024')
+        hashed = bcrypt.hashpw(pwd.encode(), bcrypt.gensalt()).decode()
+        admin = {"id": str(uuid.uuid4()), "email": "admin@easyleaz.ch", "password": hashed, "name": "Admin", "created_at": datetime.now(timezone.utc).isoformat()}
         await db.admin_users.insert_one(admin)
-        return {"success": True, "message": "Admin créé: admin@easyleaz.ch / easyleaz2024"}
+        return {"success": True, "message": "Admin créé"}
     return {"success": True, "message": "Admin existe déjà"}
+
+@api_router.post("/auth/reset-password")
+async def reset_admin_password(secret: str = ""):
+    """Reset admin password using ADMIN_RESET_SECRET env var as authorization.
+    Useful for production password rotation without DB access."""
+    expected_secret = os.environ.get('ADMIN_RESET_SECRET', '')
+    if not expected_secret or secret != expected_secret:
+        raise HTTPException(status_code=403, detail="Secret invalide")
+    pwd = os.environ.get('ADMIN_PASSWORD', '')
+    if not pwd or len(pwd) < 8:
+        raise HTTPException(status_code=400, detail="ADMIN_PASSWORD non défini ou trop court")
+    hashed = bcrypt.hashpw(pwd.encode(), bcrypt.gensalt()).decode()
+    res = await db.admin_users.update_one({"email": "admin@easyleaz.ch"}, {"$set": {"password": hashed}})
+    if res.matched_count == 0:
+        # Create if absent
+        admin = {"id": str(uuid.uuid4()), "email": "admin@easyleaz.ch", "password": hashed, "name": "Admin", "created_at": datetime.now(timezone.utc).isoformat()}
+        await db.admin_users.insert_one(admin)
+        return {"success": True, "message": "Admin créé avec nouveau mot de passe"}
+    return {"success": True, "message": "Mot de passe admin réinitialisé"}
 
 # ─── File Helpers ───
 

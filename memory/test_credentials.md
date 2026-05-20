@@ -1,55 +1,104 @@
-# Codes d'accès & URLs — EasyLeaz + EasyLoc (2 sites en 1)
+# Codes d'accès Production — EasyLeaz + EasyLoc
 
-## Panneaux d'administration (login unifié)
+## 🔑 URLs admin (NOUVELLES — l'ancienne `/admin` ne marche plus)
 
-**Email** : `admin@easyleaz.ch`
-**Mot de passe** : `easyleaz2024`
+| Site | URL admin |
+|---|---|
+| EasyLeaz admin | `https://votre-domaine.ch/admin-elc2345` |
+| EasyLoc admin  | `https://votre-domaine.ch/easyloc/admin-elc2345` |
 
-Ce même compte JWT donne accès aux **deux** panneaux admin :
+## 🔐 Identifiants admin (login unifié)
 
-| Site | URL admin | Onglets disponibles |
-|---|---|---|
-| **EasyLeaz** (leasing — cyan/dark) | `/admin` | Dashboard · Demandes · Véhicules · Contenu · **Thème** · **Sections** |
-| **EasyLoc** (location — doré/noir) | `/easyloc/admin` | Contenu · Véhicules · Réservations · **Thème** · **Sections** · Paramètres |
+- **Email** : `admin@easyleaz.ch`
+- **Password** : `o3lUj8IAeNwYrgjUD&gQ13xR`
 
-Le token JWT est partagé dans `sessionStorage.admin_jwt` — connectez-vous une fois sur l'un et vous êtes automatiquement connecté sur l'autre.
+⚠️ Ce password est généré aléatoirement (24 caractères, mix lettres/chiffres/symboles). À conserver en lieu sûr.
 
-## URLs publiques
+## 🚀 Étapes pour activer le nouveau password en production (Vercel + Railway + MongoDB Atlas)
+
+### 1. Push le code sur GitHub
+Dans Emergent : cliquez sur **"Save to GitHub"** → push.
+Vercel redéploie automatiquement le frontend.
+Railway redéploie automatiquement le backend.
+
+### 2. Ajouter le nouveau password dans Railway
+- Allez sur Railway → votre service backend → onglet **Variables**
+- Ajoutez ces 2 variables :
+  ```
+  ADMIN_PASSWORD=o3lUj8IAeNwYrgjUD&gQ13xR
+  ADMIN_RESET_SECRET=<une autre chaîne aléatoire longue, vous la choisissez>
+  ```
+- Cliquez sur **Deploy** pour redémarrer le service.
+
+### 3. Mettre à jour le password admin dans MongoDB Atlas
+Une fois Railway redémarré, lancez ce **curl** depuis votre terminal (Mac/Windows) :
+
+```bash
+curl -X POST "https://VOTRE-BACKEND.railway.app/api/auth/reset-password?secret=VOTRE_ADMIN_RESET_SECRET"
+```
+
+Remplacez :
+- `VOTRE-BACKEND.railway.app` → l'URL réelle de votre backend Railway
+- `VOTRE_ADMIN_RESET_SECRET` → la valeur que vous avez mise dans `ADMIN_RESET_SECRET`
+
+Vous devriez recevoir : `{"success":true,"message":"Mot de passe admin réinitialisé"}`
+
+### 4. Tester la connexion
+- Allez sur `https://votre-domaine.ch/admin-elc2345`
+- Email : `admin@easyleaz.ch`
+- Password : `o3lUj8IAeNwYrgjUD&gQ13xR`
+
+✅ Vous êtes maintenant authentifié sur les 2 panels (EasyLeaz + EasyLoc partagent le même JWT).
+
+---
+
+## 📋 Variables d'environnement Railway complètes
+
+```env
+# Database
+MONGO_URL=mongodb+srv://user:pass@cluster.mongodb.net
+DB_NAME=easyleaz_db
+
+# Auth
+ADMIN_PASSWORD=o3lUj8IAeNwYrgjUD&gQ13xR
+ADMIN_RESET_SECRET=changez_par_une_chaine_aleatoire_longue
+JWT_SECRET=changez_par_une_autre_chaine_aleatoire_longue
+
+# CORS (mettre l'URL exacte de votre frontend Vercel)
+CORS_ORIGINS=https://votre-domaine.ch,https://www.votre-domaine.ch,https://votre-app.vercel.app
+
+# SMTP Infomaniak (optionnel — pour les emails)
+SMTP_HOST=mail.infomaniak.com
+SMTP_PORT=587
+SMTP_USER=contact@votre-domaine.ch
+SMTP_PASS=votre_mdp_smtp
+SMTP_FROM=contact@votre-domaine.ch
+NOTIFICATION_EMAIL=contact@votre-domaine.ch
+```
+
+## 📋 Variables d'environnement Vercel
+
+```env
+REACT_APP_BACKEND_URL=https://VOTRE-BACKEND.railway.app
+WDS_SOCKET_PORT=443
+```
+
+⚠️ Après ajout/modification d'une variable Vercel : **Settings → Deployments → Redeploy** pour rebuild.
+
+---
+
+## 🔄 Pour changer à nouveau le password plus tard
+
+1. Modifiez `ADMIN_PASSWORD` dans Railway → Redeploy
+2. Lancez à nouveau le curl `/api/auth/reset-password?secret=...`
+3. Le nouveau password est actif immédiatement
+
+---
+
+## 📂 URLs publiques
 
 | Site | URL |
 |---|---|
-| EasyLeaz — accueil leasing | `/` |
-| EasyLeaz — catalogue véhicules (neuf / occasion) | `/catalogue` |
-| EasyLoc — accueil location | `/easyloc` |
-
-## Panneau admin — fonctionnalités
-
-### Onglet Contenu (CMS textuel)
-- Édition de toutes les sections : Hero, About, Processus, FAQ, Contact, Navbar, Footer, etc.
-- **Upload d'images/vidéos** directement depuis le panneau (bouton "Uploader" sur les champs `image`, `video`, `background`, `logo`, `media`, etc.)
-
-### Onglet Thème (couleurs dynamiques)
-- 6 couleurs modifiables : principale, principale (hover), accent, fond, fond alternatif, texte
-- Color picker + input hexadécimal
-- Aperçu en temps réel
-- S'applique dynamiquement sur tout le site après sauvegarde
-
-### Onglet Sections (visibilité des sections)
-- Active / désactive chaque section de la landing page (toggle on/off)
-- 7 sections EasyLeaz : About, Processus, CTA Véhicules, Formulaire, FAQ, Bascule EasyLoc, Contact
-- 7 sections EasyLoc : Catalogue, Processus, Formulaire, RDV, CTA, Bascule EasyLeaz, Contact
-
-### Onglet Véhicules (EasyLoc)
-- Ajout / édition / suppression de véhicules
-- **Multi-upload de photos** (JPG, PNG, max 5 MB)
-- Définir l'image principale, supprimer des photos individuelles
-- Édition des caractéristiques techniques (puissance, accélération, transmission, carburant, etc.)
-
-### Onglet Véhicules (EasyLeaz)
-- Idem que EasyLoc avec distinction neuf/occasion
-
-## Credentials DB / Infrastructure
-
-- MongoDB : local `mongodb://localhost:27017` (variable `MONGO_URL` dans `backend/.env`)
-- DB : `easyleaz_db` (ou selon `DB_NAME`)
-- Variables protégées : `MONGO_URL`, `DB_NAME`, `REACT_APP_BACKEND_URL` — ne jamais les modifier directement.
+| EasyLeaz | `https://votre-domaine.ch/` |
+| Catalogue EasyLeaz | `https://votre-domaine.ch/catalogue` |
+| EasyLoc | `https://votre-domaine.ch/easyloc` |

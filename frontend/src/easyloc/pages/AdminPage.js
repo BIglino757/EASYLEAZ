@@ -3,7 +3,7 @@ import axios from "axios";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Phone, Mail, MapPin, Instagram, LogOut, LayoutDashboard, Car, Calendar, FileText, Settings, Trash2, Plus, Edit, Check, X, Eye, Upload, Image as ImageIcon, Star, Palette, Layers } from "lucide-react";
+import { Phone, Mail, MapPin, Instagram, LogOut, LayoutDashboard, Car, Calendar, FileText, Settings, Trash2, Plus, Edit, Check, X, Eye, EyeOff, Upload, Image as ImageIcon, Star, Palette, Layers } from "lucide-react";
 import { ThemeEditor } from "@/components/admin/ThemeEditor";
 import { SectionsVisibilityEditor } from "@/components/admin/SectionsVisibilityEditor";
 import { AssetUpload } from "@/components/admin/AssetUpload";
@@ -30,6 +30,7 @@ export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loginError, setLoginError] = useState("");
   const [activeTab, setActiveTab] = useState("content");
   const [content, setContent] = useState({});
@@ -180,7 +181,7 @@ export default function AdminPage() {
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-[#0B0B0B] flex items-center justify-center" data-testid="admin-login-page">
+      <div className="min-h-screen bg-[#0B0B0B] flex items-center justify-center px-4" data-testid="admin-login-page">
         <div className="w-full max-w-md p-8 bg-[#111111] border border-[#333333]">
           <h1 className="font-cinzel text-2xl text-[#D4AF37] mb-8 tracking-widest text-center">EASYLOC ADMIN</h1>
           <form onSubmit={handleLogin} className="space-y-6">
@@ -189,7 +190,8 @@ export default function AdminPage() {
               <Input
                 data-testid="admin-username-input"
                 type="email"
-                placeholder="admin@easyleaz.ch"
+                placeholder="Insérez l'email admin"
+                autoComplete="off"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 className="mt-2 bg-[#0B0B0B] border-[#333333] text-[#F5F5F5] rounded-none focus:border-[#D4AF37] focus:ring-0"
@@ -197,13 +199,20 @@ export default function AdminPage() {
             </div>
             <div>
               <Label className="text-[#A0A0A0] text-xs uppercase tracking-widest">Mot de passe</Label>
-              <Input
-                data-testid="admin-password-input"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="mt-2 bg-[#0B0B0B] border-[#333333] text-[#F5F5F5] rounded-none focus:border-[#D4AF37] focus:ring-0"
-              />
+              <div className="relative mt-2">
+                <button type="button" onClick={() => setShowPassword((v) => !v)} aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#A0A0A0] hover:text-[#D4AF37] transition-colors" data-testid="admin-password-toggle">
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+                <Input
+                  data-testid="admin-password-input"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Insérez le mot de passe admin"
+                  autoComplete="off"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="bg-[#0B0B0B] border-[#333333] text-[#F5F5F5] rounded-none focus:border-[#D4AF37] focus:ring-0 pl-11"
+                />
+              </div>
             </div>
             {loginError && <p className="text-red-400 text-sm">{loginError}</p>}
             <button data-testid="admin-login-button" type="submit" className="btn-gold w-full">Connexion</button>
