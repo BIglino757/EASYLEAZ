@@ -113,20 +113,3 @@
 .font-inter {
   font-family: 'Inter', sans-serif;
 }
-
-/* Hide third-party watermarks */
-[data-testid="emergent-watermark"],
-.emergent-watermark,
-div[class*="emergent"],
-a[href*="emergent.sh"],
-div[style*="Made with"] {
-  display: none !important;
-  visibility: hidden !important;
-  opacity: 0 !important;
-  pointer-events: none !important;
-  height: 0 !important;
-  width: 0 !important;
-  overflow: hidden !important;
-  position: absolute !important;
-  z-index: -1 !important;
-}

@@ -1,5 +1,6 @@
 import { useApp } from "@/App";
 import { useEasyLeazTheme } from "@/hooks/useEasyLeazTheme";
+import { MetaTags } from "@/components/MetaTags";
 import { Navbar } from "@/components/landing/Navbar";
 import { HeroSection } from "@/components/landing/HeroSection";
 import { VehicleCTASection } from "@/components/landing/VehicleCTASection";
@@ -39,6 +40,7 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen" style={themeVars} data-testid="landing-page">
+      <MetaTags site="easyleaz" />
       <Navbar />
       <HeroSection />
       {sections.about && <AboutSection />}
