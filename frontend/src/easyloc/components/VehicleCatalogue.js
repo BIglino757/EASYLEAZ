@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Fuel, Gauge, Zap, Settings2 } from "lucide-react";
 import { VehicleModal } from "../components/VehicleModal";
 
@@ -8,6 +8,39 @@ const specIcons = {
   acceleration: Gauge,
   transmission: Settings2,
   fuel: Fuel,
+};
+
+const VehicleDescription = ({ description }) => {
+  const [open, setOpen] = useState(false);
+  if (!description) return null;
+  return (
+    <div className="mt-3">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        data-testid="vehicle-desc-toggle"
+        className="w-full flex items-center justify-between gap-2 py-2 px-3 rounded-lg border border-[rgba(201,162,39,0.2)] text-[#C9A227] text-[0.7rem] uppercase tracking-wider hover:bg-[rgba(201,162,39,0.06)] transition-colors"
+      >
+        <span>{open ? "Masquer la description" : "Voir la description"}</span>
+        <ChevronRight size={12} className={`transition-transform duration-300 ${open ? "rotate-90" : ""}`} />
+      </button>
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+            style={{ overflow: "hidden" }}
+          >
+            <p className="text-[rgba(250,248,245,0.65)] text-xs mt-3 whitespace-pre-line leading-relaxed">
+              {description}
+            </p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
 };
 
 export const VehicleCatalogue = ({ vehicles }) => {
@@ -176,6 +209,9 @@ export const VehicleCatalogue = ({ vehicles }) => {
                       <CalendarIcon size={14} />
                       Voir disponibilité
                     </button>
+
+                    {/* Description (expandable) */}
+                    <VehicleDescription description={vehicle.description} />
                   </div>
                 </div>
               </motion.div>

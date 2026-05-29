@@ -88,6 +88,7 @@ class Vehicle(BaseModel):
     monthly_payment: int
     image_url: str = ""
     images: list = Field(default_factory=list)
+    description: str = ""
     badge: str = ""
     condition: str = "occasion"
     status: str = "active"
@@ -104,6 +105,7 @@ class VehicleCreate(BaseModel):
     monthly_payment: int
     image_url: str = ""
     images: list = Field(default_factory=list)
+    description: str = ""
     badge: str = ""
     condition: str = "occasion"
 
@@ -117,6 +119,7 @@ class VehicleUpdate(BaseModel):
     price: Optional[int] = None
     monthly_payment: Optional[int] = None
     image_url: Optional[str] = None
+    description: Optional[str] = None
     badge: Optional[str] = None
     condition: Optional[str] = None
     status: Optional[str] = None
@@ -348,8 +351,11 @@ async def create_lead(
     address: str = Form(""),
     residence_permit: str = Form(""),
     children_count: str = Form(""),
+    children_ages: str = Form(""),
     housing_cost: str = Form(""),
+    housing_status: str = Form(""),
     employment_date: str = Form(""),
+    monthly_income: str = Form(""),
     annual_income: str = Form(""),
     professional_status: str = Form(""),
     desired_vehicle: str = Form(""),
@@ -389,8 +395,11 @@ async def create_lead(
         "address": address,
         "residence_permit": residence_permit,
         "children_count": children_count,
+        "children_ages": children_ages,
         "housing_cost": housing_cost,
+        "housing_status": housing_status,
         "employment_date": employment_date,
+        "monthly_income": monthly_income,
         "annual_income": annual_income,
         "professional_status": professional_status,
         "desired_vehicle": desired_vehicle,
@@ -822,6 +831,7 @@ class ELReservationCreate(BaseModel):
     telephone: str
     email: str
     vehicule: str
+    vehicle_id: str = ""
     date_debut: str
     date_fin: str
     message: str = ""
@@ -834,6 +844,7 @@ class ELVehicleCreate(BaseModel):
     price_day: int
     price_weekend: int
     km_included: str = "200 km/jour inclus"
+    description: str = ""
     specs: dict = {}
     category: str = "berline"
     available: bool = True
@@ -895,6 +906,27 @@ async def el_get_vehicle(vehicle_id: str):
     if not vehicle:
         raise HTTPException(status_code=404, detail="Vehicle not found")
     return vehicle
+
+@easyloc_router.get("/vehicles/{vehicle_id}/unavailable-dates")
+async def el_get_unavailable_dates(vehicle_id: str):
+    """Return list of ISO date strings (YYYY-MM-DD) that are blocked by approved reservations."""
+    reservations = await db.easyloc_reservations.find(
+        {"vehicle_id": vehicle_id, "status": "approved"},
+        {"_id": 0, "date_debut": 1, "date_fin": 1}
+    ).to_list(1000)
+    blocked = set()
+    from datetime import date as _date, timedelta as _td
+    for r in reservations:
+        try:
+            start = _date.fromisoformat(r.get("date_debut", "")[:10])
+            end = _date.fromisoformat(r.get("date_fin", "")[:10])
+            d = start
+            while d <= end:
+                blocked.add(d.isoformat())
+                d += _td(days=1)
+        except (ValueError, TypeError):
+            continue
+    return sorted(blocked)
 
 @easyloc_router.post("/reservations")
 async def el_create_reservation(data: ELReservationCreate):

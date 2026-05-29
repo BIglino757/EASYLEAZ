@@ -279,3 +279,18 @@
   background: rgba(201, 162, 39, 0.3);
   border-radius: 3px;
 }
+
+/* Native date/month picker indicator → gold instead of default black */
+.easyloc-scope input[type="date"]::-webkit-calendar-picker-indicator,
+.easyloc-scope input[type="month"]::-webkit-calendar-picker-indicator,
+.easyloc-scope input[type="time"]::-webkit-calendar-picker-indicator,
+.easyloc-scope input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+  filter: invert(73%) sepia(70%) saturate(540%) hue-rotate(15deg) brightness(95%) contrast(95%);
+  cursor: pointer;
+  opacity: 0.85;
+  transition: opacity 0.2s ease;
+}
+.easyloc-scope input[type="date"]::-webkit-calendar-picker-indicator:hover,
+.easyloc-scope input[type="month"]::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+}

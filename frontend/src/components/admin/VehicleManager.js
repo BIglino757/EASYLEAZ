@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useApp } from "@/App";
 import axios from "axios";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -19,7 +20,7 @@ export const VehicleManager = ({ token }) => {
   const imageInputRef = useRef(null);
   const [form, setForm] = useState({
     brand: "", model: "", year: 2024, mileage: 0, fuel: "Essence",
-    transmission: "Automatique", price: 0, monthly_payment: 0, image_url: "", badge: "", condition: "occasion"
+    transmission: "Automatique", price: 0, monthly_payment: 0, image_url: "", description: "", badge: "", condition: "occasion"
   });
 
   const headers = token.length > 30 ? { Authorization: `Bearer ${token}` } : { "x-admin-token": token };
@@ -35,13 +36,13 @@ export const VehicleManager = ({ token }) => {
   useEffect(() => { fetchVehicles(); }, [fetchVehicles]);
 
   const resetForm = () => {
-    setForm({ brand: "", model: "", year: 2024, mileage: 0, fuel: "Essence", transmission: "Automatique", price: 0, monthly_payment: 0, image_url: "", badge: "", condition: "occasion" });
+    setForm({ brand: "", model: "", year: 2024, mileage: 0, fuel: "Essence", transmission: "Automatique", price: 0, monthly_payment: 0, image_url: "", description: "", badge: "", condition: "occasion" });
     setEditing(null);
   };
 
   const openEdit = (v) => {
     setEditing(v.id);
-    setForm({ brand: v.brand, model: v.model, year: v.year, mileage: v.mileage, fuel: v.fuel, transmission: v.transmission, price: v.price, monthly_payment: v.monthly_payment, image_url: v.image_url || "", badge: v.badge || "", condition: v.condition || "occasion" });
+    setForm({ brand: v.brand, model: v.model, year: v.year, mileage: v.mileage, fuel: v.fuel, transmission: v.transmission, price: v.price, monthly_payment: v.monthly_payment, image_url: v.image_url || "", description: v.description || "", badge: v.badge || "", condition: v.condition || "occasion" });
     setDialogOpen(true);
   };
 
@@ -207,6 +208,17 @@ export const VehicleManager = ({ token }) => {
                     <Label className="text-xs text-[#E6F7FF]/60">Badge</Label>
                     <Input value={form.badge} onChange={(e) => handleChange("badge", e.target.value)} placeholder="Ex: Premium, Neuf" className="bg-[#071A1F]/50 border-[#22D3EE]/15 text-[#E6F7FF] h-10 rounded-lg" data-testid="vehicle-form-badge" />
                   </div>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-[#E6F7FF]/60">Description du véhicule</Label>
+                  <Textarea
+                    value={form.description}
+                    onChange={(e) => handleChange("description", e.target.value)}
+                    placeholder="Caractéristiques détaillées, équipements, historique, points forts..."
+                    rows={5}
+                    className="bg-[#071A1F]/50 border-[#22D3EE]/15 text-[#E6F7FF] rounded-lg resize-none"
+                    data-testid="vehicle-form-description"
+                  />
                 </div>
                 <button type="submit" disabled={saving} className="btn-primary-easyleaz w-full py-3 rounded-full font-semibold flex items-center justify-center gap-2" data-testid="vehicle-form-submit">
                   {saving ? <Loader2 size={18} className="animate-spin" /> : (editing ? "Mettre à jour" : "Ajouter le véhicule")}

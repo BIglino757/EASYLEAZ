@@ -1,5 +1,6 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useApp } from "@/App";
+import { useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,6 +14,7 @@ const labelClass = "font-inter text-sm text-[#E6F7FF]/70 tracking-wide";
 export const LeasingFormSection = () => {
   const { cmsData, API } = useApp();
   const cms = cmsData?.leasing_form || {};
+  const location = useLocation();
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
@@ -25,7 +27,7 @@ export const LeasingFormSection = () => {
     last_name: "",
     phone: "",
     email: "",
-    annual_income: "",
+    monthly_income: "",
     professional_status: "",
     desired_vehicle: "",
     marital_status: "",
@@ -34,9 +36,26 @@ export const LeasingFormSection = () => {
     address: "",
     residence_permit: "",
     children_count: "",
+    children_ages: "",
     housing_cost: "",
+    housing_status: "",
     employment_date: "",
   });
+
+  // Auto-open + pre-fill vehicle if redirected from catalogue with ?vehicle=
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const v = params.get("vehicle");
+    if (v) {
+      setForm((p) => ({ ...p, desired_vehicle: v }));
+      setFormOpen(true);
+      // Scroll to form
+      setTimeout(() => {
+        const el = document.getElementById("demande");
+        if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 200);
+    }
+  }, [location.search]);
 
   const [identityFile, setIdentityFile] = useState(null);
   const [salaryFiles, setSalaryFiles] = useState([]);
@@ -60,8 +79,9 @@ export const LeasingFormSection = () => {
     if (!form.residence_permit) e.residence_permit = "Requis";
     if (!form.children_count) e.children_count = "Requis";
     if (!form.housing_cost.trim()) e.housing_cost = "Requis";
+    if (!form.housing_status) e.housing_status = "Requis";
     if (!form.employment_date) e.employment_date = "Requis";
-    if (!form.annual_income) e.annual_income = "Requis";
+    if (!form.monthly_income.trim()) e.monthly_income = "Requis";
     if (!form.professional_status) e.professional_status = "Requis";
     if (!form.desired_vehicle.trim()) e.desired_vehicle = "Requis";
     if (!identityFile) e.identity = "Pièce d'identité requise";
@@ -283,26 +303,47 @@ export const LeasingFormSection = () => {
             </div>
           </div>
 
+          {/* Children ages (only shown if at least 1 child) */}
+          {form.children_count && form.children_count !== "0" && (
+            <div className="space-y-2">
+              <Label className={labelClass}>Âge des enfants</Label>
+              <Input value={form.children_ages} onChange={(e) => handleChange("children_ages", e.target.value)} placeholder="Ex: 4 ans, 8 ans, 12 ans" className={inputClass} data-testid="form-children-ages" />
+            </div>
+          )}
+
           <div className="space-y-2">
-            <Label className={labelClass}>Adresse de domicile *</Label>
+            <Label className={labelClass}>Adresse de domicile complète *</Label>
             <Input value={form.address} onChange={(e) => handleChange("address", e.target.value)} placeholder="Rue, numéro, code postal, ville" className={inputClass} data-testid="form-address" />
             <FieldError field="address" />
           </div>
 
-          <div className="space-y-2">
-            <Label className={labelClass}>Permis de séjour *</Label>
-            <Select value={form.residence_permit} onValueChange={(v) => handleChange("residence_permit", v)}>
-              <SelectTrigger className={inputClass} data-testid="form-residence-permit"><SelectValue placeholder="Sélectionnez" /></SelectTrigger>
-              <SelectContent className="bg-[#0E2F36] border-[#22D3EE]/20 text-[#E6F7FF]">
-                <SelectItem value="Citoyen suisse">Citoyen suisse</SelectItem>
-                <SelectItem value="Permis C">Permis C</SelectItem>
-                <SelectItem value="Permis B">Permis B</SelectItem>
-                <SelectItem value="Permis L">Permis L</SelectItem>
-                <SelectItem value="Permis G">Permis G (frontalier)</SelectItem>
-                <SelectItem value="Autre">Autre</SelectItem>
-              </SelectContent>
-            </Select>
-            <FieldError field="residence_permit" />
+          <div className="grid md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <Label className={labelClass}>Permis de séjour *</Label>
+              <Select value={form.residence_permit} onValueChange={(v) => handleChange("residence_permit", v)}>
+                <SelectTrigger className={inputClass} data-testid="form-residence-permit"><SelectValue placeholder="Sélectionnez" /></SelectTrigger>
+                <SelectContent className="bg-[#0E2F36] border-[#22D3EE]/20 text-[#E6F7FF]">
+                  <SelectItem value="Citoyen suisse">Citoyen suisse</SelectItem>
+                  <SelectItem value="Permis C">Permis C</SelectItem>
+                  <SelectItem value="Permis B">Permis B</SelectItem>
+                  <SelectItem value="Permis L">Permis L</SelectItem>
+                  <SelectItem value="Permis G">Permis G (frontalier)</SelectItem>
+                  <SelectItem value="Autre">Autre</SelectItem>
+                </SelectContent>
+              </Select>
+              <FieldError field="residence_permit" />
+            </div>
+            <div className="space-y-2">
+              <Label className={labelClass}>Situation du logement *</Label>
+              <Select value={form.housing_status} onValueChange={(v) => handleChange("housing_status", v)}>
+                <SelectTrigger className={inputClass} data-testid="form-housing-status"><SelectValue placeholder="Sélectionnez" /></SelectTrigger>
+                <SelectContent className="bg-[#0E2F36] border-[#22D3EE]/20 text-[#E6F7FF]">
+                  <SelectItem value="Propriétaire">Propriétaire</SelectItem>
+                  <SelectItem value="Locataire">Locataire</SelectItem>
+                </SelectContent>
+              </Select>
+              <FieldError field="housing_status" />
+            </div>
           </div>
 
           {/* Section: Situation financière */}
@@ -313,17 +354,9 @@ export const LeasingFormSection = () => {
 
           <div className="grid md:grid-cols-2 gap-6">
             <div className="space-y-2">
-              <Label className={labelClass}>Revenus annuels *</Label>
-              <Select value={form.annual_income} onValueChange={(v) => handleChange("annual_income", v)}>
-                <SelectTrigger className={inputClass} data-testid="form-income"><SelectValue placeholder="Sélectionnez" /></SelectTrigger>
-                <SelectContent className="bg-[#0E2F36] border-[#22D3EE]/20 text-[#E6F7FF]">
-                  <SelectItem value="< 50'000 CHF">Moins de 50'000 CHF</SelectItem>
-                  <SelectItem value="50'000 - 80'000 CHF">50'000 - 80'000 CHF</SelectItem>
-                  <SelectItem value="80'000 - 120'000 CHF">80'000 - 120'000 CHF</SelectItem>
-                  <SelectItem value="> 120'000 CHF">Plus de 120'000 CHF</SelectItem>
-                </SelectContent>
-              </Select>
-              <FieldError field="annual_income" />
+              <Label className={labelClass}>Revenus mensuels bruts (CHF) *</Label>
+              <Input type="number" min="0" value={form.monthly_income} onChange={(e) => handleChange("monthly_income", e.target.value)} placeholder="Ex: 6500" className={inputClass} data-testid="form-monthly-income" />
+              <FieldError field="monthly_income" />
             </div>
             <div className="space-y-2">
               <Label className={labelClass}>Situation professionnelle *</Label>
@@ -348,8 +381,8 @@ export const LeasingFormSection = () => {
               <FieldError field="housing_cost" />
             </div>
             <div className="space-y-2">
-              <Label className={labelClass}>Date de début d'emploi *</Label>
-              <Input type="date" value={form.employment_date} onChange={(e) => handleChange("employment_date", e.target.value)} className={inputClass} data-testid="form-employment-date" />
+              <Label className={labelClass}>Date d'embauche (mois/année) *</Label>
+              <Input type="month" value={form.employment_date} onChange={(e) => handleChange("employment_date", e.target.value)} className={inputClass} data-testid="form-employment-date" />
               <FieldError field="employment_date" />
             </div>
           </div>

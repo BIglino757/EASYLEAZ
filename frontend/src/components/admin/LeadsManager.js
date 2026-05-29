@@ -209,8 +209,10 @@ export const LeadsManager = ({ token }) => {
                     <InfoRow icon={Flag} label="Nationalité" value={selectedLead.nationality || "—"} />
                     <InfoRow icon={Heart} label="État civil" value={selectedLead.marital_status || "—"} />
                     <InfoRow icon={Baby} label="Enfants" value={selectedLead.children_count || "—"} />
+                    {selectedLead.children_ages && <InfoRow icon={Baby} label="Âge des enfants" value={selectedLead.children_ages} />}
                     <InfoRow icon={MapPin} label="Adresse" value={selectedLead.address || "—"} />
                     <InfoRow icon={Shield} label="Permis de séjour" value={selectedLead.residence_permit || "—"} />
+                    <InfoRow icon={Home} label="Statut logement" value={selectedLead.housing_status || "—"} />
                   </div>
                 </div>
 
@@ -218,10 +220,10 @@ export const LeadsManager = ({ token }) => {
                 <div>
                   <h4 className="font-cinzel text-xs font-semibold text-[#22D3EE] uppercase tracking-[0.15em] mb-3">Situation financière</h4>
                   <div className="grid sm:grid-cols-2 gap-3">
-                    <InfoRow icon={CreditCard} label="Revenus annuels" value={selectedLead.annual_income || "—"} />
+                    <InfoRow icon={CreditCard} label="Revenus mensuels bruts" value={selectedLead.monthly_income ? `CHF ${selectedLead.monthly_income}` : (selectedLead.annual_income || "—")} />
                     <InfoRow icon={Briefcase} label="Situation pro." value={selectedLead.professional_status || "—"} />
                     <InfoRow icon={Home} label="Coût logement" value={selectedLead.housing_cost ? `CHF ${selectedLead.housing_cost}/mois` : "—"} />
-                    <InfoRow icon={Calendar} label="Début d'emploi" value={selectedLead.employment_date || "—"} />
+                    <InfoRow icon={Calendar} label="Date d'embauche" value={selectedLead.employment_date || "—"} />
                   </div>
                 </div>
 

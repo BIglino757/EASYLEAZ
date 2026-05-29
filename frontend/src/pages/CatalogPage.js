@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useApp } from "@/App";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Fuel, Gauge, Calendar, Settings2, ChevronRight, ArrowLeft, ArrowUpDown } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -17,7 +17,12 @@ const getImgSrc = (vehicle) => {
 
 const VehicleCard = ({ vehicle, index }) => {
   const navigate = useNavigate();
-  const scrollToForm = () => navigate("/#demande");
+  const [descOpen, setDescOpen] = useState(false);
+  const goToForm = () => {
+    const label = `${vehicle.brand} ${vehicle.model}`;
+    // Pass selected vehicle in URL — HeroSection/LeasingFormSection read it
+    navigate(`/?vehicle=${encodeURIComponent(label)}#demande`);
+  };
 
   return (
     <motion.div
@@ -78,10 +83,41 @@ const VehicleCard = ({ vehicle, index }) => {
         </div>
 
         <div className="flex gap-3 mt-5">
-          <button onClick={scrollToForm} className="btn-primary-easyleaz flex-1 py-2.5 rounded-full text-xs font-semibold tracking-wide flex items-center justify-center gap-1" data-testid={`catalog-cta-${index}`}>
+          <button onClick={goToForm} className="btn-primary-easyleaz flex-1 py-2.5 rounded-full text-xs font-semibold tracking-wide flex items-center justify-center gap-1" data-testid={`catalog-cta-${index}`}>
             Demande de leasing <ChevronRight size={14} />
           </button>
         </div>
+
+        {/* Voir la description (expandable) */}
+        {vehicle.description && (
+          <div className="mt-4">
+            <button
+              onClick={() => setDescOpen((v) => !v)}
+              aria-expanded={descOpen}
+              data-testid={`catalog-desc-toggle-${index}`}
+              className="w-full flex items-center justify-between gap-2 py-2 px-3 rounded-lg border border-[#22D3EE]/15 text-[#22D3EE] text-xs uppercase tracking-wider hover:bg-[#22D3EE]/5 transition-colors"
+            >
+              <span>{descOpen ? "Masquer la description" : "Voir la description"}</span>
+              <ChevronRight size={14} className={`transition-transform duration-300 ${descOpen ? "rotate-90" : ""}`} />
+            </button>
+            <AnimatePresence initial={false}>
+              {descOpen && (
+                <motion.div
+                  key="desc"
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+                  style={{ overflow: "hidden" }}
+                >
+                  <p className="font-inter text-sm text-[#E6F7FF]/70 mt-3 whitespace-pre-line leading-relaxed">
+                    {vehicle.description}
+                  </p>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        )}
       </div>
     </motion.div>
   );
