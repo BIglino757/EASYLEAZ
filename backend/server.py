@@ -992,6 +992,13 @@ async def el_update_reservation_status(reservation_id: str, data: dict, admin: d
         raise HTTPException(status_code=404, detail="Reservation not found")
     return {"status": "updated"}
 
+@easyloc_router.delete("/admin/reservations/{reservation_id}")
+async def el_delete_reservation(reservation_id: str, admin: dict = Depends(get_current_admin)):
+    result = await db.easyloc_reservations.delete_one({"id": reservation_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Reservation not found")
+    return {"status": "deleted"}
+
 # EasyLoc vehicle images upload
 EL_VEHICLE_UPLOAD_DIR = UPLOAD_DIR / "easyloc_vehicles"
 EL_VEHICLE_UPLOAD_DIR.mkdir(exist_ok=True)
