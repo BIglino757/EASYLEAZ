@@ -34,6 +34,7 @@ export const LeasingFormSection = () => {
     nationality: "",
     birth_date: "",
     address: "",
+    address_since_date: "",
     residence_permit: "",
     children_count: "",
     children_ages: "",
@@ -76,8 +77,10 @@ export const LeasingFormSection = () => {
     if (!form.nationality.trim()) e.nationality = "Requis";
     if (!form.birth_date) e.birth_date = "Requis";
     if (!form.address.trim()) e.address = "Requis";
+    if (!form.address_since_date) e.address_since_date = "Requis";
     if (!form.residence_permit) e.residence_permit = "Requis";
     if (!form.children_count) e.children_count = "Requis";
+    if (form.children_count && form.children_count !== "0" && !form.children_ages.trim()) e.children_ages = "Précisez l'âge des enfants";
     if (!form.housing_cost.trim()) e.housing_cost = "Requis";
     if (!form.housing_status) e.housing_status = "Requis";
     if (!form.employment_date) e.employment_date = "Requis";
@@ -306,8 +309,9 @@ export const LeasingFormSection = () => {
           {/* Children ages (only shown if at least 1 child) */}
           {form.children_count && form.children_count !== "0" && (
             <div className="space-y-2">
-              <Label className={labelClass}>Âge des enfants</Label>
+              <Label className={labelClass}>Âge des enfants *</Label>
               <Input value={form.children_ages} onChange={(e) => handleChange("children_ages", e.target.value)} placeholder="Ex: 4 ans, 8 ans, 12 ans" className={inputClass} data-testid="form-children-ages" />
+              <FieldError field="children_ages" />
             </div>
           )}
 
@@ -315,6 +319,12 @@ export const LeasingFormSection = () => {
             <Label className={labelClass}>Adresse de domicile complète *</Label>
             <Input value={form.address} onChange={(e) => handleChange("address", e.target.value)} placeholder="Rue, numéro, code postal, ville" className={inputClass} data-testid="form-address" />
             <FieldError field="address" />
+          </div>
+
+          <div className="space-y-2">
+            <Label className={labelClass}>À cette adresse depuis (mois / année) *</Label>
+            <Input type="month" value={form.address_since_date} onChange={(e) => handleChange("address_since_date", e.target.value)} className={inputClass} data-testid="form-address-since" />
+            <FieldError field="address_since_date" />
           </div>
 
           <div className="grid md:grid-cols-2 gap-6">

@@ -211,6 +211,7 @@ export const LeadsManager = ({ token }) => {
                     <InfoRow icon={Baby} label="Nombre d'enfants" value={selectedLead.children_count || "—"} />
                     {selectedLead.children_ages && <InfoRow icon={Baby} label="Âge des enfants" value={selectedLead.children_ages} />}
                     <InfoRow icon={MapPin} label="Adresse" value={selectedLead.address || "—"} />
+                    {selectedLead.address_since_date && <InfoRow icon={Calendar} label="À cette adresse depuis" value={selectedLead.address_since_date} />}
                     <InfoRow icon={Shield} label="Permis de séjour" value={selectedLead.residence_permit || "—"} />
                     <InfoRow icon={Home} label="Situation logement" value={selectedLead.housing_status || "—"} />
                   </div>

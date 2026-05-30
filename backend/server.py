@@ -349,6 +349,7 @@ async def create_lead(
     nationality: str = Form(""),
     birth_date: str = Form(""),
     address: str = Form(""),
+    address_since_date: str = Form(""),
     residence_permit: str = Form(""),
     children_count: str = Form(""),
     children_ages: str = Form(""),
@@ -393,6 +394,7 @@ async def create_lead(
         "nationality": nationality,
         "birth_date": birth_date,
         "address": address,
+        "address_since_date": address_since_date,
         "residence_permit": residence_permit,
         "children_count": children_count,
         "children_ages": children_ages,
@@ -435,6 +437,7 @@ async def create_leasing_request_compat(data: dict):
         "nationality": data.get("nationality", ""),
         "birth_date": data.get("birth_date", ""),
         "address": data.get("address", ""),
+        "address_since_date": data.get("address_since_date", ""),
         "residence_permit": data.get("residence_permit", ""),
         "children_count": data.get("children_count", ""),
         "housing_cost": data.get("housing_cost", ""),
@@ -502,7 +505,7 @@ async def export_leads_csv(
     writer = csv.writer(output, delimiter=';')
     writer.writerow([
         "Nom", "Prénom", "Email", "Téléphone", "Nationalité", "Date naissance",
-        "État civil", "Adresse", "Permis séjour", "Nombre d'enfants", "Âge des enfants",
+        "État civil", "Adresse", "À cette adresse depuis", "Permis séjour", "Nombre d'enfants", "Âge des enfants",
         "Situation logement", "Coût logement", "Date d'embauche", "Revenus mensuels bruts",
         "Revenus annuels (legacy)", "Situation pro.", "Véhicule souhaité",
         "Statut", "Documents", "Date soumission",
@@ -512,7 +515,8 @@ async def export_leads_csv(
         writer.writerow([
             lead.get("last_name", ""), lead.get("first_name", ""), lead.get("email", ""),
             lead.get("phone", ""), lead.get("nationality", ""), lead.get("birth_date", ""),
-            lead.get("marital_status", ""), lead.get("address", ""), lead.get("residence_permit", ""),
+            lead.get("marital_status", ""), lead.get("address", ""), lead.get("address_since_date", ""),
+            lead.get("residence_permit", ""),
             lead.get("children_count", ""), lead.get("children_ages", ""),
             lead.get("housing_status", ""), lead.get("housing_cost", ""),
             lead.get("employment_date", ""), lead.get("monthly_income", ""),

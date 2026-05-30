@@ -101,12 +101,21 @@ export default function AdminPage() {
   const saveVehicle = async () => {
     try {
       if (editingVehicle === "new") {
-        await axios.post(`${API}/admin/vehicles`, editData, { headers });
+        const res = await axios.post(`${API}/admin/vehicles`, editData, { headers });
+        await fetchData();
+        // Keep the form open and switch to edit mode so admin can upload photos immediately
+        const newId = res.data?.id;
+        if (newId) {
+          setEditingVehicle(newId);
+          setEditData((prev) => ({ ...prev, id: newId, images: prev.images || [] }));
+        } else {
+          setEditingVehicle(null);
+        }
       } else {
         await axios.put(`${API}/admin/vehicles/${editingVehicle}`, editData, { headers });
+        await fetchData();
+        setEditingVehicle(null);
       }
-      await fetchData();
-      setEditingVehicle(null);
     } catch (e) {
       console.error(e);
     }
@@ -516,12 +525,14 @@ export default function AdminPage() {
                   )}
 
                   <div className="flex gap-3 mt-6">
-                    <button onClick={saveVehicle} data-testid="save-vehicle-btn" className="btn-gold py-2 px-6 text-xs">Enregistrer</button>
+                    <button onClick={saveVehicle} data-testid="save-vehicle-btn" className="btn-gold py-2 px-6 text-xs">
+                      {editingVehicle === "new" ? "Enregistrer et ajouter des photos" : "Enregistrer"}
+                    </button>
                     <button onClick={() => setEditingVehicle(null)} className="btn-outline-gold py-2 px-6 text-xs">Fermer</button>
                   </div>
                   {editingVehicle === "new" && (
                     <p className="text-[#A0A0A0] text-[0.7rem] mt-3">
-                      Astuce : enregistrez le véhicule puis rouvrez-le pour ajouter des photos.
+                      Astuce : après avoir enregistré, la galerie photos apparaîtra ci-dessus pour permettre l'upload multiple immédiat.
                     </p>
                   )}
                 </div>
