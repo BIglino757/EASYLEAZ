@@ -500,15 +500,24 @@ async def export_leads_csv(
     leads = await db.leads.find(query, {"_id": 0}).sort("created_at", -1).to_list(10000)
     output = io.StringIO()
     writer = csv.writer(output, delimiter=';')
-    writer.writerow(["Nom", "Prénom", "Email", "Téléphone", "Nationalité", "Date naissance", "État civil", "Adresse", "Permis séjour", "Enfants", "Revenus annuels", "Situation pro.", "Coût logement", "Début emploi", "Véhicule souhaité", "Statut", "Documents", "Date soumission"])
+    writer.writerow([
+        "Nom", "Prénom", "Email", "Téléphone", "Nationalité", "Date naissance",
+        "État civil", "Adresse", "Permis séjour", "Nombre d'enfants", "Âge des enfants",
+        "Situation logement", "Coût logement", "Date d'embauche", "Revenus mensuels bruts",
+        "Revenus annuels (legacy)", "Situation pro.", "Véhicule souhaité",
+        "Statut", "Documents", "Date soumission",
+    ])
     for lead in leads:
         doc_count = len(lead.get("documents", []))
         writer.writerow([
             lead.get("last_name", ""), lead.get("first_name", ""), lead.get("email", ""),
             lead.get("phone", ""), lead.get("nationality", ""), lead.get("birth_date", ""),
             lead.get("marital_status", ""), lead.get("address", ""), lead.get("residence_permit", ""),
-            lead.get("children_count", ""), lead.get("annual_income", ""), lead.get("professional_status", ""),
-            lead.get("housing_cost", ""), lead.get("employment_date", ""), lead.get("desired_vehicle", ""),
+            lead.get("children_count", ""), lead.get("children_ages", ""),
+            lead.get("housing_status", ""), lead.get("housing_cost", ""),
+            lead.get("employment_date", ""), lead.get("monthly_income", ""),
+            lead.get("annual_income", ""), lead.get("professional_status", ""),
+            lead.get("desired_vehicle", ""),
             lead.get("status", ""), str(doc_count), lead.get("created_at", ""),
         ])
     output.seek(0)

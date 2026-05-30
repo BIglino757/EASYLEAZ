@@ -9,10 +9,16 @@
 
 ## 🔐 Identifiants admin (login unifié)
 
+### Local / Preview (utilisé par le testing agent)
+- **Email** : `admin@easyleaz.ch`
+- **Password** : `easyleaz2024`
+- **URL local** : `/admin-elc2345` (preview) — ces creds sont définis dans `/app/backend/.env` via `ADMIN_PASSWORD`.
+
+### Production (Vercel + Railway)
 - **Email** : `admin@easyleaz.ch`
 - **Password** : `o3lUj8IAeNwYrgjUD&gQ13xR`
 
-⚠️ Ce password est généré aléatoirement (24 caractères, mix lettres/chiffres/symboles). À conserver en lieu sûr.
+⚠️ Ce password production est généré aléatoirement (24 caractères). À conserver en lieu sûr.
 
 ## 🚀 Étapes pour activer le nouveau password en production (Vercel + Railway + MongoDB Atlas)
 

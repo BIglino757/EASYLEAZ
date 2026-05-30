@@ -208,11 +208,11 @@ export const LeadsManager = ({ token }) => {
                     <InfoRow icon={Calendar} label="Date de naissance" value={selectedLead.birth_date || "—"} />
                     <InfoRow icon={Flag} label="Nationalité" value={selectedLead.nationality || "—"} />
                     <InfoRow icon={Heart} label="État civil" value={selectedLead.marital_status || "—"} />
-                    <InfoRow icon={Baby} label="Enfants" value={selectedLead.children_count || "—"} />
+                    <InfoRow icon={Baby} label="Nombre d'enfants" value={selectedLead.children_count || "—"} />
                     {selectedLead.children_ages && <InfoRow icon={Baby} label="Âge des enfants" value={selectedLead.children_ages} />}
                     <InfoRow icon={MapPin} label="Adresse" value={selectedLead.address || "—"} />
                     <InfoRow icon={Shield} label="Permis de séjour" value={selectedLead.residence_permit || "—"} />
-                    <InfoRow icon={Home} label="Statut logement" value={selectedLead.housing_status || "—"} />
+                    <InfoRow icon={Home} label="Situation logement" value={selectedLead.housing_status || "—"} />
                   </div>
                 </div>
 
