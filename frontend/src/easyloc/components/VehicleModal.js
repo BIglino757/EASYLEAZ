@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, CalendarDays, ArrowRight, Check, ChevronLeft, ChevronRight } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
@@ -16,10 +16,25 @@ export const VehicleModal = ({ vehicle, onClose }) => {
   });
   const [submitting, setSubmitting] = useState(false);
   const [currentImg, setCurrentImg] = useState(0);
+  const [blockedDates, setBlockedDates] = useState([]);
 
   const gallery = (vehicle.images && vehicle.images.length > 0) ? vehicle.images : [vehicle.image];
   const nextImg = () => setCurrentImg((i) => (i + 1) % gallery.length);
   const prevImg = () => setCurrentImg((i) => (i - 1 + gallery.length) % gallery.length);
+
+  // Fetch unavailable dates (approved reservations)
+  useEffect(() => {
+    let alive = true;
+    axios.get(`${API}/vehicles/${vehicle.id}/unavailable-dates`)
+      .then((res) => { if (alive) setBlockedDates(res.data || []); })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, [vehicle.id]);
+
+  const isDateBlocked = (date) => {
+    const iso = format(date, "yyyy-MM-dd");
+    return blockedDates.includes(iso);
+  };
 
   const days = dateRange.from && dateRange.to
     ? differenceInDays(dateRange.to, dateRange.from) + 1
@@ -38,6 +53,7 @@ export const VehicleModal = ({ vehicle, onClose }) => {
       await axios.post(`${API}/reservations`, {
         ...formData,
         vehicule: vehicle.name,
+        vehicle_id: vehicle.id,
         date_debut: format(dateRange.from, "yyyy-MM-dd"),
         date_fin: format(dateRange.to, "yyyy-MM-dd"),
       });
@@ -154,7 +170,7 @@ export const VehicleModal = ({ vehicle, onClose }) => {
                     onSelect={(range) => setDateRange(range || { from: undefined, to: undefined })}
                     numberOfMonths={1}
                     locale={fr}
-                    disabled={{ before: new Date() }}
+                    disabled={[{ before: new Date() }, isDateBlocked]}
                     className="bg-[#0A0A0C] border border-[rgba(201,162,39,0.08)] rounded-xl p-4"
                     classNames={{
                       months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",

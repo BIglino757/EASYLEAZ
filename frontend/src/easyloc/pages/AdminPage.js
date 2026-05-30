@@ -101,12 +101,21 @@ export default function AdminPage() {
   const saveVehicle = async () => {
     try {
       if (editingVehicle === "new") {
-        await axios.post(`${API}/admin/vehicles`, editData, { headers });
+        const res = await axios.post(`${API}/admin/vehicles`, editData, { headers });
+        await fetchData();
+        // Keep the form open and switch to edit mode so admin can upload photos immediately
+        const newId = res.data?.id;
+        if (newId) {
+          setEditingVehicle(newId);
+          setEditData((prev) => ({ ...prev, id: newId, images: prev.images || [] }));
+        } else {
+          setEditingVehicle(null);
+        }
       } else {
         await axios.put(`${API}/admin/vehicles/${editingVehicle}`, editData, { headers });
+        await fetchData();
+        setEditingVehicle(null);
       }
-      await fetchData();
-      setEditingVehicle(null);
     } catch (e) {
       console.error(e);
     }
@@ -376,7 +385,7 @@ export default function AdminPage() {
                   data-testid="add-vehicle-button"
                   onClick={() => {
                     setEditingVehicle("new");
-                    setEditData({ name: "", year: 2024, image: "", price_day: 0, price_weekend: 0, km_included: "200 km/jour inclus", specs: {}, category: "sport", available: true, order: vehicles.length });
+                    setEditData({ name: "", year: 2024, image: "", price_day: 0, price_weekend: 0, km_included: "200 km/jour inclus", description: "", specs: {}, category: "sport", available: true, order: vehicles.length });
                   }}
                   className="btn-gold flex items-center gap-2 py-2 px-6"
                 >
@@ -402,6 +411,19 @@ export default function AdminPage() {
                         />
                       </div>
                     ))}
+                  </div>
+
+                  {/* Description */}
+                  <div className="mt-6">
+                    <Label className="text-[#A0A0A0] text-xs uppercase tracking-wider">Description du véhicule</Label>
+                    <Textarea
+                      value={editData.description ?? ""}
+                      onChange={(e) => setEditData({ ...editData, description: e.target.value })}
+                      placeholder="Caractéristiques détaillées, équipements, historique, points forts..."
+                      rows={5}
+                      data-testid="vehicle-form-description"
+                      className="mt-2 bg-[#0B0B0B] border-[#333333] text-[#F5F5F5] rounded-none focus:border-[#D4AF37] focus:ring-0 text-sm resize-none"
+                    />
                   </div>
 
                   {/* Specs editor */}
@@ -503,12 +525,14 @@ export default function AdminPage() {
                   )}
 
                   <div className="flex gap-3 mt-6">
-                    <button onClick={saveVehicle} data-testid="save-vehicle-btn" className="btn-gold py-2 px-6 text-xs">Enregistrer</button>
+                    <button onClick={saveVehicle} data-testid="save-vehicle-btn" className="btn-gold py-2 px-6 text-xs">
+                      {editingVehicle === "new" ? "Enregistrer et ajouter des photos" : "Enregistrer"}
+                    </button>
                     <button onClick={() => setEditingVehicle(null)} className="btn-outline-gold py-2 px-6 text-xs">Fermer</button>
                   </div>
                   {editingVehicle === "new" && (
                     <p className="text-[#A0A0A0] text-[0.7rem] mt-3">
-                      Astuce : enregistrez le véhicule puis rouvrez-le pour ajouter des photos.
+                      Astuce : après avoir enregistré, la galerie photos apparaîtra ci-dessus pour permettre l'upload multiple immédiat.
                     </p>
                   )}
                 </div>

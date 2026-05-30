@@ -1,0 +1,25 @@
+{
+  "summary": "Iter10 testing complete. All backend tests (4/4 iter10 new + 8/8 iter9 regression = 12/12) and all frontend UI flows pass. Verified: (a) Âge des enfants devient obligatoire avec * et message d'erreur 'Précisez l'âge des enfants' quand children_count >= 1. (b) Nouveau champ 'À cette adresse depuis' (type=month) présent juste après l'adresse, persiste en DB et apparaît dans GET /api/leads/{id}. (c) CSV export: 'À cette adresse depuis' à position 9 (entre Adresse et Permis séjour) avec valeur correcte. (d) CMSEditor FAQ: bouton cms-add-questions fonctionne (10→11 items), boutons cms-remove-questions-{i} présents sur chaque item. (e) EasyLeaz VehicleManager: la modale RESTE OUVERTE après création, zone 'Photos du véhicule' avec vehicle-form-upload-images apparaît, bouton submit passe à 'Mettre à jour', bouton 'Terminer' (vehicle-form-close) présent. (f) EasyLoc admin: bouton submit affiche 'Enregistrer et ajouter des photos' pour nouveau véhicule, code saveVehicle() switche bien editingVehicle vers le nouvel id pour garder la modale ouverte. (g) Calendar block iter9 re-validé (création + approbation + unavailable-dates).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_iter10_address_since.py",
+    "/app/test_reports/pytest/iter10_results.xml",
+    "/app/backend/tests/test_iter9_full.py",
+    "/app/test_reports/pytest/iter9_rerun.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "VehicleManager.handleSave() correctly keeps dialog open after POST and switches to editing=newId — clean UX.",
+    "Backend CSV header order matches spec exactly with 'À cette adresse depuis' at index 8 (1-based position 9).",
+    "LeadsManager line 214 uses conditional render — older leads without address_since_date won't show the row, which is the right behavior.",
+    "CMSEditor add/removeArrayItem implementation is generic — supports any array field, not only faq questions."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "100% (12/12)", "frontend": "100% (all critical flows verified)"},
+  "test_credentials": "admin@easyleaz.ch / easyleaz2024",
+  "seed_data_creation": "Created 1 test lead with TEST_ prefix (cleaned up via test fixture). Created and deleted 1 test vehicle TESTBRAND/TESTITER10 via UI + API cleanup.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Backend tests live in /app/backend/tests/test_iter10_address_since.py (4 tests) and test_iter9_full.py (8 tests). Both must continue passing. New CSV header position 9 = 'À cette adresse depuis' between Adresse and Permis séjour. Run with: REACT_APP_BACKEND_URL=<url> pytest backend/tests/ -v"
+}

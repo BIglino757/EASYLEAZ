@@ -23,6 +23,32 @@ Intégrer EASYLOC (cloné de GitHub) comme seconde page `/easyloc` sur le site E
 
 ## Implémenté (historique)
 
+### Mai 2026 — Iteration 10 : Ajouts complémentaires
+- ✅ **Formulaire EasyLeaz** : nouveau champ obligatoire `address_since_date` (type='month', « À cette adresse depuis ») persistant en DB + admin + CSV (position 9)
+- ✅ **Formulaire EasyLeaz** : `children_ages` devient obligatoire (avec * et message d'erreur) quand `children_count > 0`
+- ✅ **CMS FAQ — Admin** : boutons « + Ajouter » et « Supprimer » pour les questions/réponses (et tout array CMS générique). data-testid `cms-add-{key}` et `cms-remove-{key}-{i}`
+- ✅ **Admin Véhicules EasyLeaz** : la modale « Ajouter véhicule » reste ouverte après création pour permettre l'upload immédiat de plusieurs photos. Bouton submit dynamique « Créer et ajouter des photos » → « Mettre à jour », bouton « Terminer » pour fermer
+- ✅ **Admin Véhicules EasyLoc** : même UX — bouton « Enregistrer et ajouter des photos » + ouverture maintenue après création
+
+### Tests iteration 10
+- Backend pytest 12/12 PASS (4 nouveaux iter10 + 8 régression iter9)
+- Frontend Playwright 100% — tous les flows vérifiés
+
+### Mai 2026 — Iteration 9 : 6 modifications fonctionnelles
+- ✅ **Description véhicule** : champ ajouté au modèle (EasyLeaz + EasyLoc), éditable depuis le panel admin via `<Textarea>` dans VehicleManager / EasyLoc AdminPage, et affiché côté client via toggle « Voir la description » expandable (data-testid `catalog-desc-toggle-{i}` / `vehicle-desc-toggle`)
+- ✅ **CTA « Demande de leasing » EasyLeaz** : depuis le catalogue, redirige vers `/?vehicle=...#demande` ; `LeasingFormSection` lit le query param via `useEffect`, pré-remplit `desired_vehicle` et ouvre automatiquement l'accordéon
+- ✅ **Calendrier EasyLoc — blocage des dates** : nouvel endpoint `GET /api/easyloc/vehicles/{id}/unavailable-dates` retourne la liste ISO des jours bloqués par les réservations `status: approved` ; `VehicleModal` les fetch et les passe au `<Calendar disabled={[{before: today}, isDateBlocked]}>`
+- ✅ **Multi-upload images EasyLeaz** : bouton « Photos » dans VehicleManager + endpoint `POST /api/vehicles/{id}/images` (multiple files, set main image via star)
+- ✅ **Icône calendrier or** : règle CSS `.easyloc-scope input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(73%) sepia(70%) saturate(540%) hue-rotate(15deg)… }` dans `easyloc/styles.css`
+- ✅ **Formulaire EasyLeaz refondu** : nouveaux champs ajoutés — `address` (full), `children_count` (select 0-4+), `children_ages` (conditional input), `housing_status` (Propriétaire/Locataire), `employment_date` (input type='month'). « Revenus annuels » remplacé par `monthly_income` (champ libre, non pré-rempli). Backend `POST /api/leads` persiste tous les champs ; admin panel les affiche ; export CSV `/api/leads/export` inclut les 6 nouvelles colonnes
+
+### Tests iteration 9
+- Backend pytest 8/8 PASS (/app/backend/tests/test_iter9_full.py)
+- Frontend Playwright validation : 6/6 features confirmées end-to-end
+- Aucun bug critique ni régression
+
+## Implémenté (historique antérieur)
+
 ### Avril 2026 — Intégration de base
 - ✅ Intégration EASYLOC en tant que 2e site (routes `/easyloc`, `/easyloc/admin`)
 - ✅ Isolation CSS via `.easyloc-scope` wrapper + variables HSL shadcn scopées

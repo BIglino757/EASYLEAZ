@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useApp } from "@/App";
 import axios from "axios";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -19,7 +20,7 @@ export const VehicleManager = ({ token }) => {
   const imageInputRef = useRef(null);
   const [form, setForm] = useState({
     brand: "", model: "", year: 2024, mileage: 0, fuel: "Essence",
-    transmission: "Automatique", price: 0, monthly_payment: 0, image_url: "", badge: "", condition: "occasion"
+    transmission: "Automatique", price: 0, monthly_payment: 0, image_url: "", description: "", badge: "", condition: "occasion"
   });
 
   const headers = token.length > 30 ? { Authorization: `Bearer ${token}` } : { "x-admin-token": token };
@@ -35,13 +36,13 @@ export const VehicleManager = ({ token }) => {
   useEffect(() => { fetchVehicles(); }, [fetchVehicles]);
 
   const resetForm = () => {
-    setForm({ brand: "", model: "", year: 2024, mileage: 0, fuel: "Essence", transmission: "Automatique", price: 0, monthly_payment: 0, image_url: "", badge: "", condition: "occasion" });
+    setForm({ brand: "", model: "", year: 2024, mileage: 0, fuel: "Essence", transmission: "Automatique", price: 0, monthly_payment: 0, image_url: "", description: "", badge: "", condition: "occasion" });
     setEditing(null);
   };
 
   const openEdit = (v) => {
     setEditing(v.id);
-    setForm({ brand: v.brand, model: v.model, year: v.year, mileage: v.mileage, fuel: v.fuel, transmission: v.transmission, price: v.price, monthly_payment: v.monthly_payment, image_url: v.image_url || "", badge: v.badge || "", condition: v.condition || "occasion" });
+    setForm({ brand: v.brand, model: v.model, year: v.year, mileage: v.mileage, fuel: v.fuel, transmission: v.transmission, price: v.price, monthly_payment: v.monthly_payment, image_url: v.image_url || "", description: v.description || "", badge: v.badge || "", condition: v.condition || "occasion" });
     setDialogOpen(true);
   };
 
@@ -53,15 +54,21 @@ export const VehicleManager = ({ token }) => {
     try {
       if (editing) {
         await axios.put(`${API}/vehicles/${editing}`, form, { headers });
+        setDialogOpen(false);
+        resetForm();
       } else {
         const res = await axios.post(`${API}/vehicles`, form, { headers });
+        // Keep dialog open and switch to edit mode so user can upload photos right away
         setEditing(res.data.id);
       }
-      setDialogOpen(false);
-      resetForm();
       fetchVehicles();
     } catch (err) { console.error(err); }
     setSaving(false);
+  };
+
+  const handleDialogImageUpload = async (files) => {
+    if (!editing || !files || files.length === 0) return;
+    await handleImageUpload(editing, files);
   };
 
   const handleDelete = async (id) => {
@@ -208,9 +215,92 @@ export const VehicleManager = ({ token }) => {
                     <Input value={form.badge} onChange={(e) => handleChange("badge", e.target.value)} placeholder="Ex: Premium, Neuf" className="bg-[#071A1F]/50 border-[#22D3EE]/15 text-[#E6F7FF] h-10 rounded-lg" data-testid="vehicle-form-badge" />
                   </div>
                 </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-[#E6F7FF]/60">Description du véhicule</Label>
+                  <Textarea
+                    value={form.description}
+                    onChange={(e) => handleChange("description", e.target.value)}
+                    placeholder="Caractéristiques détaillées, équipements, historique, points forts..."
+                    rows={5}
+                    className="bg-[#071A1F]/50 border-[#22D3EE]/15 text-[#E6F7FF] rounded-lg resize-none"
+                    data-testid="vehicle-form-description"
+                  />
+                </div>
+
+                {/* Photos: visible once the vehicle has been saved (editing mode) */}
+                {editing && (
+                  <div className="space-y-2 p-4 rounded-xl bg-[#071A1F]/40 border border-[#22D3EE]/15">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs text-[#22D3EE] uppercase tracking-wider font-bold">
+                        Photos du véhicule
+                      </Label>
+                      <input
+                        type="file"
+                        ref={imageInputRef}
+                        accept=".jpg,.jpeg,.png,.webp"
+                        multiple
+                        className="hidden"
+                        onChange={(e) => { handleDialogImageUpload(e.target.files); e.target.value = ""; }}
+                        data-testid="vehicle-form-images-input"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => imageInputRef.current?.click()}
+                        disabled={uploadingImages}
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#22D3EE]/10 border border-[#22D3EE]/30 text-[#22D3EE] hover:bg-[#22D3EE]/20 transition-colors text-xs font-semibold uppercase tracking-wider"
+                        data-testid="vehicle-form-upload-images"
+                      >
+                        {uploadingImages ? <Loader2 size={12} className="animate-spin" /> : <Upload size={12} />}
+                        Ajouter des photos
+                      </button>
+                    </div>
+                    {(() => {
+                      const v = vehicles.find(x => x.id === editing);
+                      const imgs = v?.images || [];
+                      if (imgs.length === 0) {
+                        return <p className="font-inter text-[11px] text-[#E6F7FF]/40">Aucune photo. Cliquez sur « Ajouter des photos » pour en uploader plusieurs en une fois.</p>;
+                      }
+                      return (
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          {imgs.map((img) => {
+                            const isMain = v?.image_url && v.image_url.includes(img.filename);
+                            const src = `/api/uploads/vehicles/${img.filename}`;
+                            return (
+                              <div key={img.id} className={`relative w-20 h-20 rounded-lg overflow-hidden border group ${isMain ? "border-[#22D3EE]/60 ring-1 ring-[#22D3EE]/30" : "border-[#22D3EE]/10"}`}>
+                                <img src={src} alt="" className="w-full h-full object-cover" />
+                                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
+                                  <button type="button" onClick={() => setMainImage(editing, img.id)} title="Image principale" className="p-1 hover:text-[#22D3EE] text-white/70">
+                                    <Star size={12} />
+                                  </button>
+                                  <button type="button" onClick={() => handleImageDelete(editing, img.id)} title="Supprimer" className="p-1 hover:text-red-400 text-white/70">
+                                    <X size={12} />
+                                  </button>
+                                </div>
+                                {isMain && (
+                                  <span className="absolute top-0.5 left-0.5 px-1.5 py-0.5 rounded text-[8px] bg-[#22D3EE]/30 text-[#22D3EE] uppercase tracking-wide">Principale</span>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      );
+                    })()}
+                  </div>
+                )}
+
                 <button type="submit" disabled={saving} className="btn-primary-easyleaz w-full py-3 rounded-full font-semibold flex items-center justify-center gap-2" data-testid="vehicle-form-submit">
-                  {saving ? <Loader2 size={18} className="animate-spin" /> : (editing ? "Mettre à jour" : "Ajouter le véhicule")}
+                  {saving ? <Loader2 size={18} className="animate-spin" /> : (editing ? "Mettre à jour" : "Créer et ajouter des photos")}
                 </button>
+                {editing && (
+                  <button
+                    type="button"
+                    onClick={() => { setDialogOpen(false); resetForm(); }}
+                    className="w-full py-2 rounded-full text-xs text-[#E6F7FF]/50 hover:text-[#E6F7FF] uppercase tracking-wider"
+                    data-testid="vehicle-form-close"
+                  >
+                    Terminer
+                  </button>
+                )}
               </form>
             </DialogContent>
           </Dialog>

@@ -4,7 +4,7 @@ import axios from "axios";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Save, Loader2, Check, ChevronDown, ChevronUp } from "lucide-react";
+import { Save, Loader2, Check, ChevronDown, ChevronUp, Plus, Trash2 } from "lucide-react";
 import { AssetUpload } from "@/components/admin/AssetUpload";
 
 // Field name patterns that should trigger a media upload UI
@@ -35,6 +35,24 @@ const SectionEditor = ({ section, token, API }) => {
     setContent(prev => {
       const arr = [...(prev[arrayKey] || [])];
       arr[index] = { ...arr[index], [field]: value };
+      return { ...prev, [arrayKey]: arr };
+    });
+  };
+
+  const addArrayItem = (arrayKey) => {
+    setContent(prev => {
+      const arr = [...(prev[arrayKey] || [])];
+      // Build a new empty item using the same shape as the first existing item
+      const template = arr[0] ? Object.fromEntries(Object.keys(arr[0]).map(k => [k, ""])) : { question: "", answer: "" };
+      arr.push(template);
+      return { ...prev, [arrayKey]: arr };
+    });
+  };
+
+  const removeArrayItem = (arrayKey, index) => {
+    setContent(prev => {
+      const arr = [...(prev[arrayKey] || [])];
+      arr.splice(index, 1);
       return { ...prev, [arrayKey]: arr };
     });
   };
@@ -74,20 +92,52 @@ const SectionEditor = ({ section, token, API }) => {
             if (Array.isArray(value)) {
               return (
                 <div key={key} className="space-y-3">
-                  <Label className="text-xs text-[#22D3EE] uppercase tracking-wider font-bold">{key}</Label>
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs text-[#22D3EE] uppercase tracking-wider font-bold">{key} ({value.length})</Label>
+                    <button
+                      type="button"
+                      onClick={() => addArrayItem(key)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#22D3EE]/10 border border-[#22D3EE]/30 text-[#22D3EE] hover:bg-[#22D3EE]/20 transition-colors text-[11px] font-semibold uppercase tracking-wider"
+                      data-testid={`cms-add-${key}`}
+                    >
+                      <Plus size={12} /> Ajouter
+                    </button>
+                  </div>
                   {value.map((item, idx) => (
-                    <div key={idx} className="p-3 rounded-lg bg-[#071A1F]/50 border border-[#22D3EE]/10 space-y-2">
-                      <span className="font-inter text-xs text-[#E6F7FF]/40">#{idx + 1}</span>
-                      {Object.entries(item).map(([field, val]) => (
-                        <div key={field} className="space-y-1">
-                          <Label className="text-[10px] text-[#E6F7FF]/40 uppercase">{field}</Label>
-                          <Input
-                            value={val}
-                            onChange={(e) => updateNestedField(key, idx, field, e.target.value)}
-                            className="bg-[#0E2F36]/30 border-[#22D3EE]/10 text-[#E6F7FF] h-8 text-sm rounded-lg"
-                          />
-                        </div>
-                      ))}
+                    <div key={idx} className="p-3 rounded-lg bg-[#071A1F]/50 border border-[#22D3EE]/10 space-y-2 relative">
+                      <div className="flex items-center justify-between">
+                        <span className="font-inter text-xs text-[#E6F7FF]/40">#{idx + 1}</span>
+                        <button
+                          type="button"
+                          onClick={() => { if (window.confirm(`Supprimer cet élément ?`)) removeArrayItem(key, idx); }}
+                          className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500/20 text-[10px] uppercase tracking-wider"
+                          data-testid={`cms-remove-${key}-${idx}`}
+                        >
+                          <Trash2 size={10} /> Supprimer
+                        </button>
+                      </div>
+                      {Object.entries(item).map(([field, val]) => {
+                        const isLongField = typeof val === "string" && val.length > 80;
+                        return (
+                          <div key={field} className="space-y-1">
+                            <Label className="text-[10px] text-[#E6F7FF]/40 uppercase">{field}</Label>
+                            {isLongField ? (
+                              <Textarea
+                                value={val}
+                                onChange={(e) => updateNestedField(key, idx, field, e.target.value)}
+                                rows={3}
+                                className="bg-[#0E2F36]/30 border-[#22D3EE]/10 text-[#E6F7FF] text-sm rounded-lg resize-none"
+                              />
+                            ) : (
+                              <Input
+                                value={val}
+                                onChange={(e) => updateNestedField(key, idx, field, e.target.value)}
+                                className="bg-[#0E2F36]/30 border-[#22D3EE]/10 text-[#E6F7FF] h-8 text-sm rounded-lg"
+                              />
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   ))}
                 </div>
