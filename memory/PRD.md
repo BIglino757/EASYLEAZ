@@ -23,6 +23,17 @@ Intégrer EASYLOC (cloné de GitHub) comme seconde page `/easyloc` sur le site E
 
 ## Implémenté (historique)
 
+### Mai 2026 — Iteration 10 : Ajouts complémentaires
+- ✅ **Formulaire EasyLeaz** : nouveau champ obligatoire `address_since_date` (type='month', « À cette adresse depuis ») persistant en DB + admin + CSV (position 9)
+- ✅ **Formulaire EasyLeaz** : `children_ages` devient obligatoire (avec * et message d'erreur) quand `children_count > 0`
+- ✅ **CMS FAQ — Admin** : boutons « + Ajouter » et « Supprimer » pour les questions/réponses (et tout array CMS générique). data-testid `cms-add-{key}` et `cms-remove-{key}-{i}`
+- ✅ **Admin Véhicules EasyLeaz** : la modale « Ajouter véhicule » reste ouverte après création pour permettre l'upload immédiat de plusieurs photos. Bouton submit dynamique « Créer et ajouter des photos » → « Mettre à jour », bouton « Terminer » pour fermer
+- ✅ **Admin Véhicules EasyLoc** : même UX — bouton « Enregistrer et ajouter des photos » + ouverture maintenue après création
+
+### Tests iteration 10
+- Backend pytest 12/12 PASS (4 nouveaux iter10 + 8 régression iter9)
+- Frontend Playwright 100% — tous les flows vérifiés
+
 ### Mai 2026 — Iteration 9 : 6 modifications fonctionnelles
 - ✅ **Description véhicule** : champ ajouté au modèle (EasyLeaz + EasyLoc), éditable depuis le panel admin via `<Textarea>` dans VehicleManager / EasyLoc AdminPage, et affiché côté client via toggle « Voir la description » expandable (data-testid `catalog-desc-toggle-{i}` / `vehicle-desc-toggle`)
 - ✅ **CTA « Demande de leasing » EasyLeaz** : depuis le catalogue, redirige vers `/?vehicle=...#demande` ; `LeasingFormSection` lit le query param via `useEffect`, pré-remplit `desired_vehicle` et ouvre automatiquement l'accordéon
