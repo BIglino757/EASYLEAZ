@@ -922,9 +922,9 @@ async def el_get_vehicle(vehicle_id: str):
 
 @easyloc_router.get("/vehicles/{vehicle_id}/unavailable-dates")
 async def el_get_unavailable_dates(vehicle_id: str):
-    """Return list of ISO date strings (YYYY-MM-DD) that are blocked by approved reservations."""
+    """Return list of ISO date strings (YYYY-MM-DD) that are blocked by approved/confirmed reservations."""
     reservations = await db.easyloc_reservations.find(
-        {"vehicle_id": vehicle_id, "status": "approved"},
+        {"vehicle_id": vehicle_id, "status": {"$in": ["approved", "confirmed"]}},
         {"_id": 0, "date_debut": 1, "date_fin": 1}
     ).to_list(1000)
     blocked = set()
@@ -991,6 +991,13 @@ async def el_update_reservation_status(reservation_id: str, data: dict, admin: d
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Reservation not found")
     return {"status": "updated"}
+
+@easyloc_router.delete("/admin/reservations/{reservation_id}")
+async def el_delete_reservation(reservation_id: str, admin: dict = Depends(get_current_admin)):
+    result = await db.easyloc_reservations.delete_one({"id": reservation_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Reservation not found")
+    return {"status": "deleted"}
 
 # EasyLoc vehicle images upload
 EL_VEHICLE_UPLOAD_DIR = UPLOAD_DIR / "easyloc_vehicles"

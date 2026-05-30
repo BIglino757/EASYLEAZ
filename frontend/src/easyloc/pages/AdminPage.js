@@ -140,6 +140,16 @@ export default function AdminPage() {
     }
   };
 
+  const deleteReservation = async (id) => {
+    if (!window.confirm("Supprimer définitivement cette demande de réservation ?")) return;
+    try {
+      await axios.delete(`${API}/admin/reservations/${id}`, { headers });
+      await fetchData();
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   // Vehicle image upload helpers (only works for existing vehicles)
   const fileInputRef = useRef(null);
   const [uploading, setUploading] = useState(false);
@@ -599,8 +609,11 @@ export default function AdminPage() {
                         {res.message && <p>Message: <span className="text-[#F5F5F5]">{res.message}</span></p>}
                       </div>
                       <div className="flex gap-2 mt-3">
-                        <button onClick={() => updateReservationStatus(res.id, "confirmed")} className="text-xs text-green-400 hover:bg-green-400/10 px-3 py-1 transition-colors">Confirmer</button>
-                        <button onClick={() => updateReservationStatus(res.id, "rejected")} className="text-xs text-red-400 hover:bg-red-400/10 px-3 py-1 transition-colors">Refuser</button>
+                        <button onClick={() => updateReservationStatus(res.id, "confirmed")} data-testid={`reservation-confirm-${res.id}`} className="text-xs text-green-400 hover:bg-green-400/10 px-3 py-1 transition-colors">Confirmer</button>
+                        <button onClick={() => updateReservationStatus(res.id, "rejected")} data-testid={`reservation-reject-${res.id}`} className="text-xs text-red-400 hover:bg-red-400/10 px-3 py-1 transition-colors">Refuser</button>
+                        <button onClick={() => deleteReservation(res.id)} data-testid={`reservation-delete-${res.id}`} className="text-xs text-[#A0A0A0] hover:text-red-400 hover:bg-red-400/10 px-3 py-1 transition-colors inline-flex items-center gap-1 ml-auto">
+                          <Trash2 size={12} /> Supprimer
+                        </button>
                       </div>
                     </div>
                   ))}
