@@ -922,9 +922,9 @@ async def el_get_vehicle(vehicle_id: str):
 
 @easyloc_router.get("/vehicles/{vehicle_id}/unavailable-dates")
 async def el_get_unavailable_dates(vehicle_id: str):
-    """Return list of ISO date strings (YYYY-MM-DD) that are blocked by approved reservations."""
+    """Return list of ISO date strings (YYYY-MM-DD) that are blocked by approved/confirmed reservations."""
     reservations = await db.easyloc_reservations.find(
-        {"vehicle_id": vehicle_id, "status": "approved"},
+        {"vehicle_id": vehicle_id, "status": {"$in": ["approved", "confirmed"]}},
         {"_id": 0, "date_debut": 1, "date_fin": 1}
     ).to_list(1000)
     blocked = set()
