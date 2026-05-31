@@ -1087,6 +1087,40 @@ app.include_router(easyloc_router)
 @app.on_event("startup")
 async def _startup_easyloc_seed():
     await seed_easyloc()
+    await _sync_admin_password_from_env()
+
+
+async def _sync_admin_password_from_env():
+    """If ADMIN_PASSWORD env var is set, ensure the admin user's bcrypt hash matches it.
+    This makes `ADMIN_PASSWORD` the single source of truth in production:
+    update the env var in Railway, redeploy → new password active immediately.
+    No curl call needed.
+    """
+    pwd = os.environ.get('ADMIN_PASSWORD', '')
+    if not pwd or len(pwd) < 4:
+        return
+    admin_email = "admin@easyleaz.ch"
+    admin = await db.admin_users.find_one({"email": admin_email}, {"_id": 0})
+    if admin:
+        try:
+            already_matches = bcrypt.checkpw(pwd.encode(), admin["password"].encode())
+        except Exception:
+            already_matches = False
+        if not already_matches:
+            hashed = bcrypt.hashpw(pwd.encode(), bcrypt.gensalt()).decode()
+            await db.admin_users.update_one({"email": admin_email}, {"$set": {"password": hashed}})
+            logger.info("[startup] Admin password re-synced from ADMIN_PASSWORD env var")
+    else:
+        hashed = bcrypt.hashpw(pwd.encode(), bcrypt.gensalt()).decode()
+        new_admin = {
+            "id": str(uuid.uuid4()),
+            "email": admin_email,
+            "password": hashed,
+            "name": "Admin",
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        }
+        await db.admin_users.insert_one(new_admin)
+        logger.info("[startup] Admin user created from ADMIN_PASSWORD env var")
 
 app.include_router(api_router)
 
