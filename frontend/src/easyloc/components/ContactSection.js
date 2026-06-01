@@ -12,8 +12,8 @@ export const ContactSection = ({ content }) => {
     {
       icon: MessageCircle,
       label: "WhatsApp",
-      value: content?.whatsapp || "078 898 32 29",
-      href: `https://wa.me/41${(content?.whatsapp || "078 898 32 29").replace(/\s/g, "").replace(/^0/, "")}`,
+      value: content?.whatsapp || "079 949 32 29",
+      href: `https://wa.me/41${(content?.whatsapp || "079 949 32 29").replace(/\s/g, "").replace(/^0/, "")}`,
     },
     {
       icon: MapPin,
