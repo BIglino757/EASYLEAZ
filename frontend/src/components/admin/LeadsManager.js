@@ -64,8 +64,25 @@ export const LeadsManager = ({ token }) => {
     } catch (e) { console.error(e); }
   };
 
-  const downloadDoc = (leadId, docId, filename) => {
-    window.open(`${API}/leads/${leadId}/documents/${docId}/download?token=${token}`, "_blank");
+  const downloadDoc = async (leadId, docId, filename) => {
+    try {
+      const res = await axios.get(
+        `${API}/leads/${leadId}/documents/${docId}/download`,
+        { headers, responseType: "blob" }
+      );
+      const blob = new Blob([res.data]);
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", filename || "document");
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error("Download error:", e);
+      alert("Erreur lors du téléchargement du document.");
+    }
   };
 
   const exportCSV = async () => {
@@ -248,16 +265,14 @@ export const LeadsManager = ({ token }) => {
                               <p className="font-inter text-[10px] text-[#E6F7FF]/30 uppercase">{doc.type === "identity" ? "Pièce d'identité" : "Fiche de paie"}</p>
                             </div>
                           </div>
-                          <a
-                            href={`${API}/leads/${selectedLead.id}/documents/${doc.id}/download`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            onClick={(e) => e.stopPropagation()}
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); downloadDoc(selectedLead.id, doc.id, doc.original_name); }}
                             className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#22D3EE]/10 border border-[#22D3EE]/20 text-xs text-[#22D3EE] font-inter hover:bg-[#22D3EE]/20 transition-colors duration-200 flex-shrink-0"
                             data-testid={`download-doc-${doc.id}`}
                           >
                             <Download size={12} /> Télécharger
-                          </a>
+                          </button>
                         </div>
                       ))}
                     </div>

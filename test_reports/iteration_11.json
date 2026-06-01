@@ -1,0 +1,38 @@
+{
+  "summary": "Bug fix verification: admin document download flow. Tested BOTH backend (pytest 4/4 PASS) and frontend (Playwright E2E PASS). The button-based download with axios+Bearer auth works end-to-end: file is uploaded, appears in admin panel, and is downloadable via authenticated request returning the original PDF binary.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Lead detail modal (Dialog)", "issues": ["Console warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent} (Radix a11y). Add <DialogDescription> or aria-describedby to the DialogContent for accessibility."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter11_doc_download.py",
+    "/app/test_reports/pytest/iter11_results.xml"
+  ],
+  "action_items": [
+    "(Optional/low-prio) Add DialogDescription or aria-describedby to admin Lead detail Dialog to silence Radix a11y warning"
+  ],
+  "critical_code_review_comments": [
+    "server.py download_document correctly enforces get_current_admin → 401 without token (verified)",
+    "LeadsManager.downloadDoc properly uses axios.get with Authorization header + responseType:'blob' then triggers Blob/createObjectURL download (verified — no token leak in URL, no window.open with ?token=...)",
+    "Download button is correctly a <button type='button'> (not <a href>), confirmed via DOM inspection in Playwright (tagName === 'BUTTON', href === null)",
+    "Content-Disposition includes the original filename (TEST_DL_id.pdf / TEST_DL_slip.pdf) — browser uses suggested_filename correctly",
+    "Backend returns application/octet-stream as intended to force download"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter11_doc_download.py (new)"
+  ],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "test_credentials": "admin@easyleaz.ch / easyleaz2024 on /admin-elc2345",
+  "seed_data_creation": "Created and cleaned up a TEST_Playwright Download lead with 2 PDF documents via API; test fixture auto-deletes lead in teardown",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Doc download bug is fully fixed. Backend endpoint at server.py:566 requires Bearer admin token (401 without). Frontend LeadsManager.js:67-86 uses axios+blob+createObjectURL (no <a href> leak). E2E verified via Playwright page.expect_download() — both identity and salary docs download successfully with correct filename and binary content. Test file: /app/backend/tests/test_iter11_doc_download.py (4 tests, all pass).",
+  "rca_of_the_issue": "ORIGINAL BUG: frontend used <a href={url}> to trigger download, which makes a plain navigation request without the Authorization header → backend returns 401 'Non autorisé'. FIX (already applied by main agent): replaced with <button onClick> calling downloadDoc() which uses axios.get with {headers: Bearer, responseType: 'blob'}, then constructs a Blob, createObjectURL, and clicks a synthetic <a download> to save the file. VERIFIED: Playwright captured the actual download event (page.expect_download) and confirmed Bearer header on the request + 200 response + non-empty PDF binary with original filename."
+}
