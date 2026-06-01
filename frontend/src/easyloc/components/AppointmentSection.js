@@ -67,7 +67,7 @@ export const AppointmentSection = ({ content }) => {
 
               <a
                 data-testid="appointment-whatsapp-button"
-                href="https://wa.me/41788983229"
+                href="https://wa.me/41799493229"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="btn-gold inline-flex items-center gap-2"
