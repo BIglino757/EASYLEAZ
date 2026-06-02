@@ -158,9 +158,16 @@ export const VehicleCatalogue = ({ vehicles }) => {
                     </div>
 
                     {/* Category Badge */}
-                    <div className="absolute top-4 left-4">
+                    <div className="absolute top-4 left-4 flex flex-col gap-1.5">
                       <span className="category-badge text-[rgba(250,248,245,0.75)] text-[0.65rem] uppercase tracking-wider rounded-md px-2.5 py-1.5">
                         {vehicle.category}
+                      </span>
+                      {/* Special offer pill — -30% from 7 days */}
+                      <span
+                        data-testid={`offer-badge-${vehicle.id}`}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[0.6rem] font-bold uppercase tracking-wider bg-gradient-to-r from-[#C9A227] to-[#E8C547] text-[#0C0A07] shadow-[0_0_18px_rgba(201,162,39,0.45)] ring-1 ring-[#E8C547]/40"
+                      >
+                        <span aria-hidden>🏷️</span> −30% dès 7 jours
                       </span>
                     </div>
                   </div>
@@ -187,16 +194,24 @@ export const VehicleCatalogue = ({ vehicles }) => {
                       })}
                     </div>
 
-                    {/* Pricing Info */}
-                    <div className="flex items-center gap-6 mt-5 pt-5 border-t border-[rgba(201,162,39,0.08)]">
-                      <div>
-                        <p className="text-[rgba(250,248,245,0.4)] text-[0.65rem] uppercase tracking-wider">Jour</p>
-                        <p className="text-[#FAF8F5] text-sm font-medium mt-0.5">CHF {vehicle.price_day}</p>
+                    {/* Km included */}
+                    {vehicle.km_included && (
+                      <div className="mt-3 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[rgba(201,162,39,0.06)] border border-[rgba(201,162,39,0.15)]" data-testid={`km-included-${vehicle.id}`}>
+                        <Gauge size={11} className="text-[#C9A227]" />
+                        <span className="text-[rgba(250,248,245,0.7)] text-[0.7rem]">{vehicle.km_included}</span>
                       </div>
-                      <div className="w-[1px] h-8 bg-[rgba(201,162,39,0.1)]" />
-                      <div>
-                        <p className="text-[rgba(250,248,245,0.4)] text-[0.65rem] uppercase tracking-wider">Week-end</p>
-                        <p className="text-[#FAF8F5] text-sm font-medium mt-0.5">CHF {vehicle.price_weekend}</p>
+                    )}
+
+                    {/* Pricing Info — semaine / week-end clearly distinguished */}
+                    <div className="flex items-center gap-4 mt-5 pt-5 border-t border-[rgba(201,162,39,0.08)]">
+                      <div className="flex-1">
+                        <p className="text-[rgba(250,248,245,0.4)] text-[0.6rem] uppercase tracking-[0.15em]">Semaine</p>
+                        <p className="text-[#FAF8F5] text-base font-semibold mt-0.5">CHF {vehicle.price_day}<span className="text-[rgba(250,248,245,0.4)] text-xs font-normal"> /jour</span></p>
+                      </div>
+                      <div className="w-[1px] h-10 bg-[rgba(201,162,39,0.15)]" />
+                      <div className="flex-1">
+                        <p className="text-[#C9A227]/80 text-[0.6rem] uppercase tracking-[0.15em]">Week-end</p>
+                        <p className="text-[#C9A227] text-base font-semibold mt-0.5">CHF {vehicle.price_weekend}<span className="text-[rgba(250,248,245,0.4)] text-xs font-normal"> /jour</span></p>
                       </div>
                     </div>
 

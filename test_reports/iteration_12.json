@@ -1,0 +1,39 @@
+{
+  "summary": "Iteration 12 testing — Mongo binary persistence + EasyLoc catalogue/modal pricing UI + success pages. All 3 new backend tests (Mongo fallback for EasyLeaz vehicle images, EasyLoc vehicle images, lead documents — with disk wipe) PASS. 17/17 regression tests (iter9/10/11) still green → 20/20 critical backend tests pass. Frontend: offer-badge (−30% dès 7 jours), km-included (200 km/jour inclus), week (off-white #FAF8F5) vs week-end (gold #C9A227) prices distinct, modal-offer-banner visible before calendar, 3-day range correctly shows NO discount (subtotal=total=CHF 1050), 7-day range correctly UNLOCKS discount (subtotal CHF 2450 − 30% = CHF 1715 total, discount-unlocked + discount-line both present), EasyLoc modal success page shows 'Merci de votre confiance !' + success-home-btn href=/easyloc, EasyLoc ReservationSection inline form success shows same message + reservation-success-home-btn href=/easyloc, EasyLeaz LeasingFormSection success structure verified via code (data-testid leasing-form-success + leasing-success-home-btn href=/).",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "/api/easyloc/vehicles", "issue": "Pre-existing test_easyloc.py expects >=9 seed vehicles but only 1 (A35) currently seeded — unrelated to iter12, drift between test expectation and current seed data"}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter12_mongo_binary.py",
+    "/app/backend/tests/test_iter11_doc_download.py",
+    "/app/backend/tests/test_iter10_address_since.py",
+    "/app/backend/tests/test_iter9_full.py",
+    "/app/test_reports/pytest/iter12_results.xml"
+  ],
+  "action_items": [
+    "(Optional / minor) Add data-testid attributes price-week-{id} and price-weekend-{id} on the catalogue price labels for future deterministic testing — currently only inferable via DOM walk."
+  ],
+  "critical_code_review_comments": [
+    "Mongo binary persistence implementation (binary_files collection) correctly persists vehicle images + lead documents and serves them via Mongo-first → disk fallback for all 3 endpoints. Verified via disk-wipe simulation in pytest.",
+    "Pricing logic in VehicleModal.js (lines 38-52) is correct: isWeekendStay=days<=2 uses price_weekend, days 3-6 uses price_day, days>=7 applies 30% discount. Confirmed live with 3-day (no discount) and 7-day (CHF 735 discount on CHF 2450 subtotal) ranges.",
+    "All success-page testids and 'Merci de votre confiance' / home buttons are properly wired across 3 components (VehicleModal, ReservationSection, LeasingFormSection)."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter12_mongo_binary.py (NEW)"
+  ],
+  "success_rate": {"backend": "100% (20/20 iter9-12 tests)", "frontend": "100% (all reviewed flows)"},
+  "test_credentials": "admin@easyleaz.ch / easyleaz2024 (used for admin endpoints)",
+  "seed_data_creation": "test_iter12_mongo_binary.py auto-creates TEST_ prefixed vehicles and leads, then cleans up via DELETE in fixture teardowns.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Iter12 introduced MongoDB collection 'binary_files' for binary persistence (vehicle images + lead documents) with kind='vehicle_image'|'easyloc_vehicle_image'|'lead_document'. All 3 GET endpoints (uploads/vehicles, easyloc/uploads, leads/{id}/documents/{doc_id}/download) read Mongo-first with disk fallback. New EasyLoc UI: offer-badge-{id}, km-included-{id}, modal-offer-banner, discount-unlocked, discount-line, price-estimate, success-home-btn. Success pages on 3 surfaces: VehicleModal (success-home-btn → /easyloc), ReservationSection (reservation-success-home-btn → /easyloc), LeasingFormSection (leasing-success-home-btn → /).",
+  "rca of the issue": "N/A — no critical issues found."
+}

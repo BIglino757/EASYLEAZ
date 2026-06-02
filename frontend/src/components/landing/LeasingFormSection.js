@@ -156,15 +156,25 @@ export const LeasingFormSection = () => {
             transition={{ duration: 0.5 }}
             className="glass-card rounded-3xl p-12"
           >
-            <div className="w-20 h-20 rounded-full bg-[#22D3EE]/10 flex items-center justify-center mx-auto mb-6">
-              <CheckCircle size={40} className="text-[#22D3EE]" />
+            <div className="w-24 h-24 rounded-full bg-[#22D3EE]/10 border border-[#22D3EE]/30 flex items-center justify-center mx-auto mb-6">
+              <CheckCircle size={48} className="text-[#22D3EE]" />
             </div>
-            <h3 className="font-cinzel text-2xl font-bold text-[#E6F7FF] uppercase tracking-wide mb-3">
-              Demande envoyée
+            <h3 className="font-cinzel text-3xl font-bold text-[#E6F7FF] uppercase tracking-wide mb-4">
+              Merci de votre confiance !
             </h3>
-            <p className="font-inter text-[#E6F7FF]/60">
-              Merci ! Notre équipe vous contactera dans les plus brefs délais.
+            <p className="font-inter text-base text-[#E6F7FF]/70 leading-relaxed">
+              Nous avons bien reçu votre demande. Notre équipe va l'analyser et reviendra vers vous dans les plus brefs délais.
             </p>
+            <p className="font-inter text-sm text-[#E6F7FF]/50 leading-relaxed mt-3">
+              Nous vous remercions pour votre confiance et restons à votre disposition pour toute question.
+            </p>
+            <a
+              href="/"
+              data-testid="leasing-success-home-btn"
+              className="btn-primary-easyleaz inline-flex items-center justify-center gap-2 mt-8 px-8 py-3 rounded-full text-sm font-semibold tracking-wide"
+            >
+              <span aria-hidden>🏠</span> Revenir à la page d'accueil
+            </a>
           </motion.div>
         </div>
       </section>

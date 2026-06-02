@@ -23,6 +23,21 @@ Intégrer EASYLOC (cloné de GitHub) comme seconde page `/easyloc` sur le site E
 
 ## Implémenté (historique)
 
+### Mai 2026 — Iteration 12 : Bug fix critique + 4 features
+- ✅ **PERSISTANCE MONGO DES BINAIRES** (fix critique Railway éphémère) : nouvelle collection `binary_files` qui stocke tous les uploads (images véhicules EasyLeaz + EasyLoc, documents leads). Endpoints `GET /api/uploads/vehicles/{f}`, `/api/easyloc/uploads/{f}`, `/api/leads/{id}/documents/{d}/download` lisent **Mongo first → fallback disque**. Plus jamais de perte au redéploiement Railway. Validé par test de "wipe disque" qui sert toujours l'image.
+- ✅ **Affichage km_included** sur les cards du catalogue EasyLoc (testid `km-included-{id}`)
+- ✅ **Tarifs Semaine / Week-end distincts visuellement** : semaine en blanc, week-end en or `#C9A227`
+- ✅ **Offre spéciale −30% pour 7+ jours** : badge gradient or sur chaque card catalogue, banner rappel dans le modal au-dessus du calendrier, calcul auto avec discount-unlocked banner + discount-line + total breakdown (sous-total / remise / total)
+- ✅ **Pages de succès professionnelles** : "Merci de votre confiance" + bouton « 🏠 Revenir à l'accueil » sur les 3 surfaces (VehicleModal EasyLoc, ReservationSection EasyLoc inline, LeasingFormSection EasyLeaz)
+
+### Tests iteration 12
+- Backend pytest 20/20 PASS (3 nouveaux iter12 + 17 régression iter9-11)
+- Frontend Playwright 100% — toutes les flows critiques validées
+
+### Mai 2026 — Iteration 11 : Bug fix téléchargement documents
+- ✅ **Bug critique** : `<a href>` natif n'envoyait pas le header `Authorization: Bearer` → 401. Remplacé par `<button onClick={downloadDoc}>` qui fait un `axios.get` authentifié + `responseType:'blob'` + `URL.createObjectURL` → téléchargement effectif.
+- ✅ **Tests 4/4 pytest + Playwright E2E** validés.
+
 ### Mai 2026 — Iteration 10 : Ajouts complémentaires
 - ✅ **Formulaire EasyLeaz** : nouveau champ obligatoire `address_since_date` (type='month', « À cette adresse depuis ») persistant en DB + admin + CSV (position 9)
 - ✅ **Formulaire EasyLeaz** : `children_ages` devient obligatoire (avec * et message d'erreur) quand `children_count > 0`

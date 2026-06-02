@@ -228,9 +228,34 @@ async def save_upload(file: UploadFile, doc_type: str) -> dict:
     content = await file.read()
     if len(content) > MAX_FILE_SIZE:
         raise HTTPException(status_code=400, detail=f"Fichier trop volumineux (max 5MB): {file.filename}")
-    async with aiofiles.open(filepath, 'wb') as f:
-        await f.write(content)
+    # Persist to MongoDB (survives container redeploys on Railway) + write to local disk for fallback/perf
+    await db.binary_files.insert_one({
+        "file_id": file_id,
+        "filename": filename,
+        "original_name": file.filename,
+        "content_type": file.content_type or "application/octet-stream",
+        "data": content,
+        "size": len(content),
+        "kind": "lead_document",
+        "doc_type": doc_type,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    })
+    try:
+        async with aiofiles.open(filepath, 'wb') as f:
+            await f.write(content)
+    except Exception:
+        pass  # Disk write failure is non-fatal — Mongo is the source of truth
     return {"id": file_id, "type": doc_type, "original_name": file.filename, "file_path": str(filepath), "filename": filename, "size": len(content), "created_at": datetime.now(timezone.utc).isoformat()}
+
+
+async def read_binary_file(file_id_or_filename: str):
+    """Fetch a binary file from MongoDB by its uuid or filename."""
+    # Try by file_id first (uuid without extension)
+    key = file_id_or_filename.split(".")[0]
+    doc = await db.binary_files.find_one({"file_id": key}, {"_id": 0})
+    if not doc:
+        doc = await db.binary_files.find_one({"filename": file_id_or_filename}, {"_id": 0})
+    return doc
 
 # ─── Email Notification ───
 
@@ -568,9 +593,18 @@ async def download_document(lead_id: str, doc_id: str, admin: dict = Depends(get
     doc = await db.documents.find_one({"id": doc_id, "lead_id": lead_id}, {"_id": 0})
     if not doc:
         raise HTTPException(status_code=404, detail="Document non trouvé")
+    # Try MongoDB first (Railway-safe), fallback to local disk
+    bin_doc = await read_binary_file(doc.get("filename") or doc_id)
+    if bin_doc:
+        from fastapi.responses import Response
+        return Response(
+            content=bin_doc["data"],
+            media_type=bin_doc.get("content_type", "application/octet-stream"),
+            headers={"Content-Disposition": f'attachment; filename="{doc.get("original_name", "document")}"'},
+        )
     filepath = Path(doc.get("file_path", ""))
     if not filepath.exists():
-        raise HTTPException(status_code=404, detail="Fichier non trouvé sur le serveur")
+        raise HTTPException(status_code=404, detail="Fichier non trouvé sur le serveur (probablement effacé lors d'un redéploiement)")
     return FileResponse(str(filepath), filename=doc.get("original_name", "document"), media_type="application/octet-stream")
 
 # Keep old leasing-requests GET for backward compat
@@ -657,6 +691,18 @@ async def upload_vehicle_images(vehicle_id: str, files: List[UploadFile] = File(
             raise HTTPException(status_code=400, detail=f"Fichier trop volumineux (max 5MB): {file.filename}")
         async with aiofiles.open(filepath, 'wb') as f:
             await f.write(content)
+        # Persist binary in MongoDB so it survives Railway redeploys
+        await db.binary_files.insert_one({
+            "file_id": file_id,
+            "filename": filename,
+            "original_name": file.filename,
+            "content_type": file.content_type or "image/jpeg",
+            "data": content,
+            "size": len(content),
+            "kind": "vehicle_image",
+            "owner_id": vehicle_id,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        })
         img_data = {"id": file_id, "filename": filename, "original_name": file.filename, "size": len(content), "created_at": datetime.now(timezone.utc).isoformat()}
         uploaded.append(img_data)
     if uploaded:
@@ -705,6 +751,11 @@ async def set_main_image(vehicle_id: str, data: dict, admin: dict = Depends(get_
 
 @api_router.get("/uploads/vehicles/{filename}")
 async def serve_vehicle_image(filename: str):
+    # Mongo first (Railway-safe), fallback disk
+    bin_doc = await read_binary_file(filename)
+    if bin_doc:
+        from fastapi.responses import Response
+        return Response(content=bin_doc["data"], media_type=bin_doc.get("content_type", "image/jpeg"))
     filepath = VEHICLE_UPLOAD_DIR / filename
     if not filepath.exists():
         raise HTTPException(status_code=404, detail="Fichier non trouvé")
@@ -1023,6 +1074,18 @@ async def el_upload_vehicle_images(vehicle_id: str, files: List[UploadFile] = Fi
         filepath = EL_VEHICLE_UPLOAD_DIR / filename
         async with aiofiles.open(filepath, 'wb') as f:
             await f.write(content)
+        # Mongo-persist so images survive Railway redeploys
+        await db.binary_files.insert_one({
+            "file_id": file_id,
+            "filename": filename,
+            "original_name": file.filename,
+            "content_type": file.content_type or "image/jpeg",
+            "data": content,
+            "size": len(content),
+            "kind": "easyloc_vehicle_image",
+            "owner_id": vehicle_id,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        })
         uploaded_urls.append(f"/api/easyloc/uploads/{filename}")
     if uploaded_urls:
         existing = vehicle.get("images", []) or []
@@ -1070,6 +1133,11 @@ async def el_set_main_image(vehicle_id: str, data: dict, admin: dict = Depends(g
 
 @easyloc_router.get("/uploads/{filename}")
 async def el_serve_upload(filename: str):
+    # Mongo first (Railway-safe), fallback disk
+    bin_doc = await read_binary_file(filename)
+    if bin_doc:
+        from fastapi.responses import Response
+        return Response(content=bin_doc["data"], media_type=bin_doc.get("content_type", "image/jpeg"))
     filepath = EL_VEHICLE_UPLOAD_DIR / filename
     if not filepath.exists():
         raise HTTPException(status_code=404, detail="Fichier non trouvé")
