@@ -68,9 +68,10 @@ export const EasyLocSwitchSection = () => {
             className="relative aspect-[4/3] rounded-2xl overflow-hidden border border-[#C9A227]/20"
           >
             <img
-              src="https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?w=1600&q=80"
+              src="/sections/easyloc-switch.jpeg"
               alt="EasyLoc - Location premium"
               className="w-full h-full object-cover"
+              loading="lazy"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-[#080705] via-[#080705]/30 to-transparent" />
             <div className="absolute bottom-6 left-6 right-6">
