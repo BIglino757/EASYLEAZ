@@ -1,0 +1,26 @@
+{
+  "summary": "Iteration 13 — Frontend-only verification of new Popover/Calendar date-range picker in EasyLoc ReservationSection (/easyloc #reservation). All 12 acceptance criteria pass end-to-end via Playwright on the production preview URL.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "ReservationSection.js cleanly replaces the two type='date' inputs with a single shadcn Popover+Calendar trigger ([data-testid='form-dates-trigger'] + [data-testid='form-dates-calendar']). The Calendar wiring (mode='range', locale=fr, disabled=[{before: today}, isDateBlocked], auto-close on full range) mirrors VehicleModal styling 1:1 (#0A0A0C bg, rgba(201,162,39,0.2) border, gold day_selected #C9A227).",
+    "useEffect on formData.vehicule correctly fetches /api/easyloc/vehicles/{id}/unavailable-dates and feeds blockedDates into the Calendar disabled prop — verified via network capture (request fired on vehicle change).",
+    "Submit-button disabled state is correctly gated on (submitting || !dateRange.from || !dateRange.to) and the trigger button is gated on !formData.vehicule with the exact placeholder 'Sélectionnez d'abord un véhicule'.",
+    "POST /api/easyloc/reservations payload format is correct: {date_debut: 'YYYY-MM-DD', date_fin: 'YYYY-MM-DD', vehicle_id: '<uuid>'} — verified live (captured payload included date_debut='2026-06-04', date_fin='2026-06-07', vehicle_id='cdc4ef1f-...').",
+    "VehicleModal calendar regression: untouched and still opens correctly from the catalogue card."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "n/a (frontend-only iteration)", "frontend": "100% (12/12 acceptance criteria)"},
+  "test_credentials": "n/a (public page)",
+  "seed_data_creation": "Submitted one TEST reservation (Test User, test@example.com, A35, 04-07 juin 2026) — leaves a reservation row in DB; consider cleaning if it interferes with future seeded availability tests.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Iter13 fully verified the new ReservationSection date picker. Validated checkpoints: (1) old [data-testid='form-date-debut']/[data-testid='form-date-fin'] are absent. (2) new [data-testid='form-dates-trigger'] exists and is disabled with placeholder 'Sélectionnez d'abord un véhicule' until a vehicle is chosen in [data-testid='form-vehicule']. (3) Selecting the A35 (only seeded vehicle) enables the trigger and triggers GET /api/easyloc/vehicles/{id}/unavailable-dates. (4) Clicking the trigger opens [data-testid='form-dates-calendar'] in a Popover with bg rgb(10,10,12)=#0A0A0C, French day headers (lu/ma/me/je/ve/sa/di), gold border. (5) Picking from→to auto-closes the Popover and renders summary 'JJ MMM → JJ MMM AAAA' in fr-FR (e.g., '04 juin → 07 juin 2026'). (6) Submit button [data-testid='form-submit-button'] disabled-state correctly flips with dateRange. (7) POST /api/easyloc/reservations payload contains date_debut/date_fin in YYYY-MM-DD and a non-empty vehicle_id. (8) Success page [data-testid='reservation-form-success'] is shown post-submit. (9) 'Réinitialiser' button clears the range and re-displays 'Choisissez vos dates'. (10) VehicleModal regression OK (calendar still mounts). No bugs found.",
+  "rca of the issue": "N/A — no issues."
+}

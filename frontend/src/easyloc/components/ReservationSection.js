@@ -1,7 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Send, ArrowRight } from "lucide-react";
+import { Send, ArrowRight, CalendarDays } from "lucide-react";
 import axios from "axios";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api/easyloc`;
 
@@ -13,12 +17,42 @@ export const ReservationSection = ({ content, vehicles }) => {
   });
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [dateRange, setDateRange] = useState({ from: undefined, to: undefined });
+  const [blockedDates, setBlockedDates] = useState([]);
+  const [calendarOpen, setCalendarOpen] = useState(false);
+
+  // Fetch unavailable dates for the selected vehicle (same source as VehicleModal)
+  useEffect(() => {
+    const selectedVehicle = vehicles?.find((v) => v.name === formData.vehicule);
+    if (!selectedVehicle?.id) {
+      setBlockedDates([]);
+      return;
+    }
+    let alive = true;
+    axios
+      .get(`${API}/vehicles/${selectedVehicle.id}/unavailable-dates`)
+      .then((res) => { if (alive) setBlockedDates(res.data || []); })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, [formData.vehicule, vehicles]);
+
+  const isDateBlocked = (date) => {
+    const iso = format(date, "yyyy-MM-dd");
+    return blockedDates.includes(iso);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!dateRange.from || !dateRange.to) return;
     setSubmitting(true);
     try {
-      await axios.post(`${API}/reservations`, formData);
+      const selectedVehicle = vehicles?.find((v) => v.name === formData.vehicule);
+      await axios.post(`${API}/reservations`, {
+        ...formData,
+        vehicle_id: selectedVehicle?.id || "",
+        date_debut: format(dateRange.from, "yyyy-MM-dd"),
+        date_fin: format(dateRange.to, "yyyy-MM-dd"),
+      });
       setSubmitted(true);
     } catch (e) {
       console.error(e);
@@ -204,29 +238,82 @@ export const ReservationSection = ({ content, vehicles }) => {
                   </select>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4 mt-4">
-                  <div>
-                    <label className="text-[rgba(250,248,245,0.55)] text-xs font-medium block mb-2">Date début</label>
-                    <input 
-                      data-testid="form-date-debut" 
-                      type="date" 
-                      required 
-                      value={formData.date_debut} 
-                      onChange={(e) => setFormData({ ...formData, date_debut: e.target.value })} 
-                      className="input-gold"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[rgba(250,248,245,0.55)] text-xs font-medium block mb-2">Date fin</label>
-                    <input 
-                      data-testid="form-date-fin" 
-                      type="date" 
-                      required 
-                      value={formData.date_fin} 
-                      onChange={(e) => setFormData({ ...formData, date_fin: e.target.value })} 
-                      className="input-gold"
-                    />
-                  </div>
+                <div className="mt-4">
+                  <label className="text-[rgba(250,248,245,0.55)] text-xs font-medium block mb-2">Dates de location</label>
+                  <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+                    <PopoverTrigger asChild>
+                      <button
+                        type="button"
+                        data-testid="form-dates-trigger"
+                        disabled={!formData.vehicule}
+                        className={`input-gold w-full flex items-center justify-between text-left ${dateRange.from ? "text-[#FAF8F5]" : "text-[rgba(250,248,245,0.45)]"} disabled:opacity-50 disabled:cursor-not-allowed`}
+                      >
+                        <span className="flex items-center gap-2">
+                          <CalendarDays size={14} className="text-[#C9A227]" />
+                          {dateRange.from && dateRange.to
+                            ? `${format(dateRange.from, "dd MMM", { locale: fr })} → ${format(dateRange.to, "dd MMM yyyy", { locale: fr })}`
+                            : dateRange.from
+                            ? `${format(dateRange.from, "dd MMM yyyy", { locale: fr })} — sélectionnez la fin`
+                            : (formData.vehicule ? "Choisissez vos dates" : "Sélectionnez d'abord un véhicule")}
+                        </span>
+                        <ArrowRight size={14} className="text-[rgba(250,248,245,0.4)]" />
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent
+                      align="start"
+                      className="p-0 bg-[#0A0A0C] border border-[rgba(201,162,39,0.2)] rounded-xl shadow-2xl"
+                      data-testid="form-dates-calendar"
+                    >
+                      <Calendar
+                        mode="range"
+                        selected={dateRange}
+                        onSelect={(range) => {
+                          const r = range || { from: undefined, to: undefined };
+                          setDateRange(r);
+                          if (r.from && r.to) setCalendarOpen(false);
+                        }}
+                        numberOfMonths={1}
+                        locale={fr}
+                        disabled={[{ before: new Date() }, isDateBlocked]}
+                        className="bg-[#0A0A0C] border-none rounded-xl p-4"
+                        classNames={{
+                          months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
+                          month: "space-y-4",
+                          caption: "flex justify-center pt-1 relative items-center",
+                          caption_label: "text-sm font-medium text-[#FAFAFA] font-cinzel",
+                          nav: "space-x-1 flex items-center",
+                          nav_button: "h-8 w-8 bg-transparent p-0 text-[rgba(250,250,250,0.5)] hover:text-[#FAFAFA] border border-[rgba(201,162,39,0.1)] hover:border-[rgba(201,162,39,0.3)] rounded-lg transition-all duration-200 inline-flex items-center justify-center",
+                          nav_button_previous: "absolute left-1",
+                          nav_button_next: "absolute right-1",
+                          table: "w-full border-collapse space-y-1",
+                          head_row: "flex",
+                          head_cell: "text-[rgba(250,250,250,0.4)] w-9 font-normal text-[0.7rem] uppercase",
+                          row: "flex w-full mt-2",
+                          cell: "relative p-0 text-center text-sm focus-within:relative focus-within:z-20 [&:has([aria-selected])]:bg-[rgba(201,162,39,0.1)] [&:has([aria-selected])]:rounded-md",
+                          day: "h-9 w-9 p-0 font-normal text-[#FAFAFA] hover:bg-[rgba(201,162,39,0.1)] rounded-md transition-colors duration-150 inline-flex items-center justify-center cursor-pointer border-0 bg-transparent",
+                          day_range_start: "day-range-start",
+                          day_range_end: "day-range-end",
+                          day_selected: "bg-[#C9A227] text-[#0A0A0C] hover:bg-[#C9A227] hover:text-[#0A0A0C] focus:bg-[#C9A227] focus:text-[#0A0A0C] rounded-md font-medium",
+                          day_today: "border border-[rgba(201,162,39,0.3)] text-[#FAFAFA]",
+                          day_outside: "text-[rgba(250,250,250,0.2)]",
+                          day_disabled: "text-[rgba(250,250,250,0.15)] cursor-not-allowed line-through",
+                          day_range_middle: "aria-selected:bg-[rgba(201,162,39,0.08)] aria-selected:text-[#FAFAFA]",
+                          day_hidden: "invisible",
+                        }}
+                      />
+                      {dateRange.from && (
+                        <div className="px-4 pb-3 flex justify-end">
+                          <button
+                            type="button"
+                            onClick={() => { setDateRange({ from: undefined, to: undefined }); setCalendarOpen(false); }}
+                            className="text-[rgba(250,248,245,0.5)] hover:text-[#C9A227] text-[0.7rem] uppercase tracking-wider transition-colors"
+                          >
+                            Réinitialiser
+                          </button>
+                        </div>
+                      )}
+                    </PopoverContent>
+                  </Popover>
                 </div>
 
                 <div className="mt-4">
@@ -244,8 +331,8 @@ export const ReservationSection = ({ content, vehicles }) => {
                 <button 
                   data-testid="form-submit-button" 
                   type="submit" 
-                  disabled={submitting} 
-                  className="btn-gold w-full mt-6 py-4 flex items-center justify-center gap-2"
+                  disabled={submitting || !dateRange.from || !dateRange.to} 
+                  className="btn-gold w-full mt-6 py-4 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {submitting ? (
                     <>
