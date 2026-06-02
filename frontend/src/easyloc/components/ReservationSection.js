@@ -117,13 +117,23 @@ export const ReservationSection = ({ content, vehicles }) => {
           >
             {submitted ? (
               <div className="glass-card rounded-2xl p-12 text-center" data-testid="reservation-form-success">
-                <div className="w-14 h-14 rounded-2xl bg-[rgba(201,162,39,0.1)] border border-[rgba(201,162,39,0.2)] flex items-center justify-center mx-auto mb-6">
-                  <Send className="text-[#C9A227]" size={24} />
+                <div className="w-20 h-20 rounded-2xl bg-[rgba(201,162,39,0.1)] border border-[rgba(201,162,39,0.25)] flex items-center justify-center mx-auto mb-6">
+                  <Send className="text-[#C9A227]" size={32} />
                 </div>
-                <h3 className="font-cinzel text-[#FAF8F5] text-xl font-semibold mb-3">Demande envoyée</h3>
-                <p className="text-[rgba(250,248,245,0.55)] text-sm leading-relaxed">
-                  Notre équipe vous recontactera sous 30 minutes pour confirmer votre réservation.
+                <h3 className="font-cinzel text-[#FAF8F5] text-2xl font-semibold mb-3">Merci de votre confiance !</h3>
+                <p className="text-[rgba(250,248,245,0.7)] text-sm leading-relaxed">
+                  Nous avons bien reçu votre demande. Notre équipe va l'analyser et reviendra vers vous dans les plus brefs délais.
                 </p>
+                <p className="text-[rgba(250,248,245,0.5)] text-xs leading-relaxed mt-3">
+                  Nous restons à votre disposition pour toute question.
+                </p>
+                <a
+                  href="/easyloc"
+                  data-testid="reservation-success-home-btn"
+                  className="btn-gold inline-flex items-center justify-center gap-2 mt-8 px-8"
+                >
+                  <span aria-hidden>🏠</span> Revenir à l'accueil
+                </a>
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="glass-card rounded-2xl p-8" data-testid="reservation-form">

@@ -40,10 +40,16 @@ export const VehicleModal = ({ vehicle, onClose }) => {
     ? differenceInDays(dateRange.to, dateRange.from) + 1
     : 0;
 
-  const isWeekend = days > 0 && days <= 3;
-  const totalPrice = isWeekend
-    ? Math.ceil(days / 2) * vehicle.price_weekend
-    : days * vehicle.price_day;
+  // Pricing logic:
+  // - 1-2 days → weekend price (Fri-Sun) using price_weekend per day
+  // - 3-6 days → standard daily price (price_day)
+  // - 7+ days → standard daily price - 30% (special offer)
+  const isWeekendStay = days > 0 && days <= 2;
+  const qualifiesForLongStay = days >= 7;
+  const dailyRate = isWeekendStay ? vehicle.price_weekend : vehicle.price_day;
+  const subtotal = days * dailyRate;
+  const discount = qualifiesForLongStay ? Math.round(subtotal * 0.30) : 0;
+  const totalPrice = subtotal - discount;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -158,9 +164,18 @@ export const VehicleModal = ({ vehicle, onClose }) => {
             {/* Step: Date Selection */}
             {step === "dates" && (
               <div>
-                <div className="flex items-center gap-2 mb-6">
+                <div className="flex items-center gap-2 mb-4">
                   <span className="w-6 h-[1px] bg-[#C9A227]" />
                   <span className="tag-gold text-[0.6rem]">Sélectionnez vos dates</span>
+                </div>
+
+                {/* Special offer reminder */}
+                <div data-testid="modal-offer-banner" className="mb-5 flex items-start gap-3 rounded-xl px-4 py-3 bg-gradient-to-r from-[rgba(201,162,39,0.10)] to-[rgba(201,162,39,0.04)] border border-[rgba(201,162,39,0.25)]">
+                  <span className="text-lg leading-none mt-0.5" aria-hidden>🎁</span>
+                  <div>
+                    <p className="text-[#C9A227] text-xs font-semibold uppercase tracking-[0.15em]">Offre spéciale</p>
+                    <p className="text-[rgba(250,248,245,0.7)] text-[0.78rem] mt-0.5">Réservez 7 jours ou plus et bénéficiez automatiquement de <strong className="text-[#FAF8F5]">−30%</strong>.</p>
+                  </div>
                 </div>
 
                 <div className="flex justify-center" data-testid="vehicle-calendar">
@@ -204,10 +219,18 @@ export const VehicleModal = ({ vehicle, onClose }) => {
                   <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="mt-6 bg-[#0A0A0C] border border-[rgba(201,162,39,0.1)] rounded-xl p-5"
+                    className="mt-6 bg-[#0A0A0C] border border-[rgba(201,162,39,0.1)] rounded-xl p-5 space-y-3"
                     data-testid="price-estimate"
                   >
-                    <div className="flex justify-between items-center">
+                    {/* Unlocked banner */}
+                    {qualifiesForLongStay && (
+                      <div data-testid="discount-unlocked" className="rounded-lg px-3 py-2 bg-gradient-to-r from-[#C9A227]/15 to-[#E8C547]/10 border border-[#C9A227]/35 text-center">
+                        <p className="text-[#C9A227] text-[0.7rem] uppercase tracking-[0.2em] font-bold">🎉 Vous avez débloqué l'offre spéciale −30%</p>
+                      </div>
+                    )}
+
+                    {/* Header row */}
+                    <div className="flex items-center justify-between">
                       <div>
                         <p className="text-[rgba(250,250,250,0.4)] text-xs font-medium uppercase tracking-wider">Estimation</p>
                         <p className="text-[#FAFAFA] text-sm mt-1">
@@ -216,8 +239,37 @@ export const VehicleModal = ({ vehicle, onClose }) => {
                         </p>
                       </div>
                       <div className="text-right">
-                        <p className="text-[#C9A227] text-2xl font-bold">CHF {totalPrice}</p>
-                        <p className="text-[rgba(250,250,250,0.4)] text-xs">estimation</p>
+                        {qualifiesForLongStay && (
+                          <p className="text-[rgba(250,250,250,0.4)] text-xs line-through">CHF {subtotal}</p>
+                        )}
+                        <p className="text-[#C9A227] text-2xl font-bold leading-none">CHF {totalPrice}</p>
+                        <p className="text-[rgba(250,250,250,0.4)] text-[0.65rem] mt-1">total estimé</p>
+                      </div>
+                    </div>
+
+                    {/* Breakdown */}
+                    <div className="pt-3 border-t border-[rgba(201,162,39,0.1)] space-y-1.5 text-[0.78rem]">
+                      <div className="flex justify-between text-[rgba(250,250,250,0.6)]">
+                        <span>Prix journalier {isWeekendStay ? "(week-end)" : ""}</span>
+                        <span className="text-[#FAFAFA]">CHF {dailyRate}</span>
+                      </div>
+                      <div className="flex justify-between text-[rgba(250,250,250,0.6)]">
+                        <span>Durée</span>
+                        <span className="text-[#FAFAFA]">{days} jour{days > 1 ? "s" : ""}</span>
+                      </div>
+                      <div className="flex justify-between text-[rgba(250,250,250,0.6)]">
+                        <span>Sous-total</span>
+                        <span className="text-[#FAFAFA]">CHF {subtotal}</span>
+                      </div>
+                      {qualifiesForLongStay && (
+                        <div className="flex justify-between text-[#C9A227]" data-testid="discount-line">
+                          <span>Remise −30% (7 jours et +)</span>
+                          <span>− CHF {discount}</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between pt-1.5 mt-1 border-t border-[rgba(201,162,39,0.12)] font-semibold">
+                        <span className="text-[rgba(250,250,250,0.8)]">Total</span>
+                        <span className="text-[#C9A227]">CHF {totalPrice}</span>
                       </div>
                     </div>
                   </motion.div>
@@ -349,20 +401,32 @@ export const VehicleModal = ({ vehicle, onClose }) => {
                 className="text-center py-10"
                 data-testid="reservation-success"
               >
-                <div className="w-16 h-16 rounded-2xl bg-[rgba(201,162,39,0.1)] border border-[rgba(201,162,39,0.2)] flex items-center justify-center mx-auto mb-6">
-                  <Check className="text-[#C9A227]" size={28} />
+                <div className="w-20 h-20 rounded-2xl bg-[rgba(201,162,39,0.1)] border border-[rgba(201,162,39,0.25)] flex items-center justify-center mx-auto mb-6">
+                  <Check className="text-[#C9A227]" size={32} />
                 </div>
-                <h3 className="font-cinzel text-[#FAFAFA] text-xl font-semibold mb-3">Demande envoyée</h3>
-                <p className="text-[rgba(250,250,250,0.6)] text-sm leading-relaxed max-w-sm mx-auto">
-                  Notre équipe vous recontactera dans les 30 minutes pour confirmer votre réservation.
+                <h3 className="font-cinzel text-[#FAFAFA] text-2xl font-semibold mb-3">Merci de votre confiance !</h3>
+                <p className="text-[rgba(250,250,250,0.7)] text-sm leading-relaxed max-w-sm mx-auto">
+                  Nous avons bien reçu votre demande de réservation. Notre équipe va l'analyser et reviendra vers vous dans les plus brefs délais.
                 </p>
-                <button
-                  data-testid="modal-close-success"
-                  onClick={onClose}
-                  className="btn-gold mt-8 px-10"
-                >
-                  Fermer
-                </button>
+                <p className="text-[rgba(250,250,250,0.5)] text-xs leading-relaxed max-w-sm mx-auto mt-3">
+                  Nous restons à votre disposition pour toute question.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-3 justify-center mt-8">
+                  <a
+                    href="/easyloc"
+                    data-testid="success-home-btn"
+                    className="btn-gold px-8 inline-flex items-center justify-center gap-2"
+                  >
+                    <span aria-hidden>🏠</span> Revenir à l'accueil
+                  </a>
+                  <button
+                    data-testid="modal-close-success"
+                    onClick={onClose}
+                    className="btn-outline-gold px-8"
+                  >
+                    Fermer
+                  </button>
+                </div>
               </motion.div>
             )}
           </div>
