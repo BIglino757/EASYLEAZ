@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Plus, Pencil, Trash2, Loader2, ImageIcon, Upload, X, Star } from "lucide-react";
+import { mediaUrl } from "@/lib/mediaUrl";
 
 export const VehicleManager = ({ token }) => {
   const { API } = useApp();
@@ -264,7 +265,7 @@ export const VehicleManager = ({ token }) => {
                         <div className="flex flex-wrap gap-2 mt-2">
                           {imgs.map((img) => {
                             const isMain = v?.image_url && v.image_url.includes(img.filename);
-                            const src = `/api/uploads/vehicles/${img.filename}`;
+                            const src = mediaUrl(`/api/uploads/vehicles/${img.filename}`);
                             return (
                               <div key={img.id} className={`relative w-20 h-20 rounded-lg overflow-hidden border group ${isMain ? "border-[#22D3EE]/60 ring-1 ring-[#22D3EE]/30" : "border-[#22D3EE]/10"}`}>
                                 <img src={src} alt="" className="w-full h-full object-cover" />

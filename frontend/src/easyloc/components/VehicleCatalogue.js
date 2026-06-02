@@ -2,6 +2,7 @@ import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Fuel, Gauge, Zap, Settings2 } from "lucide-react";
 import { VehicleModal } from "../components/VehicleModal";
+import { mediaUrl } from "@/lib/mediaUrl";
 
 const specIcons = {
   power: Zap,
@@ -144,7 +145,7 @@ export const VehicleCatalogue = ({ vehicles }) => {
                   {/* Image Container */}
                   <div className="relative overflow-hidden aspect-[16/10]">
                     <img
-                      src={vehicle.image}
+                      src={mediaUrl(vehicle.image)}
                       alt={vehicle.name}
                       className="vehicle-card-image w-full h-full object-cover"
                       loading="lazy"

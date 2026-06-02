@@ -2,6 +2,7 @@ import { useApp } from "@/App";
 import { motion } from "framer-motion";
 import { Fuel, Gauge, Calendar, Settings2, ChevronRight } from "lucide-react";
 import { useRef, useState } from "react";
+import { mediaUrl } from "@/lib/mediaUrl";
 
 const VehicleCard = ({ vehicle, index }) => {
   const scrollTo = (id) => {
@@ -21,7 +22,7 @@ const VehicleCard = ({ vehicle, index }) => {
       {/* Image */}
       <div className="relative h-56 overflow-hidden">
         <img
-          src={vehicle.image_url}
+          src={mediaUrl(vehicle.image_url)}
           alt={`${vehicle.brand} ${vehicle.model}`}
           className="vehicle-card-image w-full h-full object-cover"
         />
