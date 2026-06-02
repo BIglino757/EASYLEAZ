@@ -7,6 +7,7 @@ import { Phone, Mail, MapPin, Instagram, LogOut, LayoutDashboard, Car, Calendar,
 import { ThemeEditor } from "@/components/admin/ThemeEditor";
 import { SectionsVisibilityEditor } from "@/components/admin/SectionsVisibilityEditor";
 import { AssetUpload } from "@/components/admin/AssetUpload";
+import { mediaUrl } from "@/lib/mediaUrl";
 
 const ELC_DEFAULT_THEME = { primary: "#C9A227", primary_hover: "#D4AF37", accent: "#22D3EE", background: "#080705", background_alt: "#0C0A07", text: "#FAF8F5" };
 const ELC_DEFAULT_SECTIONS = { vehicles: true, process: true, reservation_form: true, appointment: true, reservation_cta: true, easyleaz_switch: true, contact: true };
@@ -499,7 +500,7 @@ export default function AdminPage() {
                         <div className="grid grid-cols-4 gap-3">
                           {(editData.images || []).map((url, i) => (
                             <div key={url + i} className="relative group aspect-[4/3] overflow-hidden border border-[#333]">
-                              <img src={url} alt={`${editData.name} ${i + 1}`} className="w-full h-full object-cover" />
+                              <img src={mediaUrl(url)} alt={`${editData.name} ${i + 1}`} className="w-full h-full object-cover" />
                               {editData.image === url && (
                                 <div className="absolute top-1 left-1 flex items-center gap-1 px-2 py-1 bg-[#D4AF37] text-[#0B0B0B] text-[0.55rem] uppercase tracking-wider font-semibold rounded-sm">
                                   <Star size={10} fill="currentColor" /> Principale
@@ -551,7 +552,7 @@ export default function AdminPage() {
               <div className="space-y-3">
                 {vehicles.map(vehicle => (
                   <div key={vehicle.id} className="bg-[#111111] border border-[#333333] p-4 flex items-center gap-4" data-testid={`vehicle-row-${vehicle.id}`}>
-                    <img src={vehicle.image} alt={vehicle.name} className="w-20 h-14 object-cover" />
+                    <img src={mediaUrl(vehicle.image)} alt={vehicle.name} className="w-20 h-14 object-cover" />
                     <div className="flex-1">
                       <p className="text-[#F5F5F5] text-sm font-medium">{vehicle.name}</p>
                       <p className="text-[#A0A0A0] text-xs">{vehicle.year} | CHF {vehicle.price_day}/jour</p>

@@ -5,6 +5,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { format, differenceInDays } from "date-fns";
 import { fr } from "date-fns/locale";
 import axios from "axios";
+import { mediaUrl } from "@/lib/mediaUrl";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api/easyloc`;
 
@@ -92,7 +93,7 @@ export const VehicleModal = ({ vehicle, onClose }) => {
           {/* Header with Image carousel */}
           <div className="relative">
             <img
-              src={gallery[currentImg]}
+              src={mediaUrl(gallery[currentImg])}
               alt={`${vehicle.name} - photo ${currentImg + 1}`}
               className="w-full h-72 object-cover"
             />
