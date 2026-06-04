@@ -177,16 +177,31 @@
   transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.easyloc-scope .vehicle-card:hover {
-  transform: translateY(-6px);
+@media (hover: hover) and (pointer: fine) {
+  .easyloc-scope .vehicle-card:hover {
+    transform: translateY(-6px);
+  }
 }
 
 .easyloc-scope .vehicle-card-image {
   transition: transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.easyloc-scope .vehicle-card:hover .vehicle-card-image {
-  transform: scale(1.05);
+@media (hover: hover) and (pointer: fine) {
+  .easyloc-scope .vehicle-card:hover .vehicle-card-image {
+    transform: scale(1.05);
+  }
+}
+
+/* Disable any lingering tap-induced movement on touch devices */
+@media (hover: none), (pointer: coarse) {
+  .easyloc-scope .vehicle-card,
+  .easyloc-scope .vehicle-card * {
+    transform: none !important;
+  }
+  .easyloc-scope .vehicle-card {
+    -webkit-tap-highlight-color: transparent;
+  }
 }
 
 /* ==========================================

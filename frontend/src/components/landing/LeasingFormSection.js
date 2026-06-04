@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CheckCircle, Send, Loader2, Upload, X, FileText, ChevronDown } from "lucide-react";
+import { CheckCircle, Send, Loader2, Upload, X, FileText, ChevronDown, Home, Car, ArrowRight } from "lucide-react";
 import axios from "axios";
 
 const inputClass = "bg-[#0E2F36]/50 border-[#22D3EE]/15 text-[#E6F7FF] placeholder:text-[#E6F7FF]/25 focus:border-[#22D3EE]/60 focus:ring-[#22D3EE]/20 h-12 rounded-xl";
@@ -147,34 +147,82 @@ export const LeasingFormSection = () => {
 
   if (submitted) {
     return (
-      <section id="demande" className="py-24 md:py-32 relative" data-testid="leasing-form-success">
-        <div className="absolute inset-0 bg-gradient-to-b from-[#071A1F] via-[#0E2F36]/20 to-[#071A1F]" />
-        <div className="relative z-10 max-w-2xl mx-auto px-6 text-center">
+      <section id="demande" className="py-24 md:py-32 relative min-h-[80vh] flex items-center" data-testid="leasing-form-success">
+        <div className="absolute inset-0 bg-gradient-to-b from-[#071A1F] via-[#0E2F36]/30 to-[#071A1F]" />
+        <div className="absolute inset-0 opacity-[0.08]" style={{ backgroundImage: "radial-gradient(circle at 25% 25%, #22D3EE 0%, transparent 50%), radial-gradient(circle at 75% 75%, #22D3EE 0%, transparent 50%)" }} />
+        <div className="relative z-10 max-w-3xl mx-auto px-6">
           <motion.div
-            initial={{ scale: 0.8, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ duration: 0.5 }}
-            className="glass-card rounded-3xl p-12"
+            initial={{ scale: 0.92, opacity: 0, y: 20 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+            className="glass-card rounded-3xl p-8 md:p-14 relative overflow-hidden"
           >
-            <div className="w-24 h-24 rounded-full bg-[#22D3EE]/10 border border-[#22D3EE]/30 flex items-center justify-center mx-auto mb-6">
-              <CheckCircle size={48} className="text-[#22D3EE]" />
-            </div>
-            <h3 className="font-cinzel text-3xl font-bold text-[#E6F7FF] uppercase tracking-wide mb-4">
-              Merci de votre confiance !
-            </h3>
-            <p className="font-inter text-base text-[#E6F7FF]/70 leading-relaxed">
-              Nous avons bien reçu votre demande. Notre équipe va l'analyser et reviendra vers vous dans les plus brefs délais.
-            </p>
-            <p className="font-inter text-sm text-[#E6F7FF]/50 leading-relaxed mt-3">
-              Nous vous remercions pour votre confiance et restons à votre disposition pour toute question.
-            </p>
-            <a
-              href="/"
-              data-testid="leasing-success-home-btn"
-              className="btn-primary-easyleaz inline-flex items-center justify-center gap-2 mt-8 px-8 py-3 rounded-full text-sm font-semibold tracking-wide"
+            {/* Gold accent */}
+            <div className="absolute -top-px left-1/2 -translate-x-1/2 w-32 h-px bg-gradient-to-r from-transparent via-[#22D3EE]/60 to-transparent" />
+
+            {/* Close button */}
+            <button
+              type="button"
+              onClick={() => { setSubmitted(false); window.location.href = "/"; }}
+              aria-label="Fermer"
+              data-testid="leasing-success-close-btn"
+              className="absolute top-5 right-5 w-9 h-9 rounded-full border border-[#22D3EE]/20 hover:border-[#22D3EE]/60 bg-[#0E2F36]/40 hover:bg-[#22D3EE]/10 text-[#E6F7FF]/60 hover:text-[#22D3EE] transition-all duration-300 flex items-center justify-center"
             >
-              <span aria-hidden>🏠</span> Revenir à la page d'accueil
-            </a>
+              <X size={16} />
+            </button>
+
+            {/* Icon */}
+            <div className="flex flex-col items-center text-center">
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+                className="w-24 h-24 rounded-full bg-gradient-to-br from-[#22D3EE]/25 to-[#22D3EE]/5 border border-[#22D3EE]/40 flex items-center justify-center mb-7 shadow-[0_0_60px_rgba(34,211,238,0.25)]"
+              >
+                <CheckCircle size={44} className="text-[#22D3EE]" strokeWidth={1.6} />
+              </motion.div>
+
+              <h1 className="font-cinzel text-3xl md:text-4xl font-bold text-[#E6F7FF] uppercase tracking-wide leading-tight">
+                Demande reçue avec <span className="text-[#22D3EE]">succès</span>
+              </h1>
+
+              <div className="w-16 h-px bg-gradient-to-r from-transparent via-[#22D3EE]/40 to-transparent mt-6" />
+
+              <p className="font-inter text-base md:text-lg text-[#E6F7FF]/80 leading-relaxed mt-6 max-w-xl">
+                Nous avons bien reçu votre demande !
+              </p>
+              <p className="font-inter text-sm md:text-base text-[#E6F7FF]/60 leading-relaxed mt-3 max-w-xl">
+                Un conseiller prendra contact avec vous dans un délai de <strong className="text-[#E6F7FF]/90">24 à 48 heures</strong> afin de vous accompagner dans la suite de votre dossier.
+              </p>
+              <p className="font-inter text-sm md:text-base text-[#22D3EE] leading-relaxed mt-4 tracking-wide">
+                Nous vous remercions pour votre confiance !
+              </p>
+
+              {/* Action buttons */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-10 w-full max-w-2xl">
+                <a
+                  href="/"
+                  data-testid="success-home-btn"
+                  className="group flex items-center justify-center gap-2 px-5 py-3.5 rounded-full bg-[#22D3EE] hover:bg-[#22D3EE]/90 text-[#071A1F] text-[0.78rem] font-bold uppercase tracking-[0.12em] transition-all duration-300 shadow-[0_0_30px_rgba(34,211,238,0.3)] hover:shadow-[0_0_40px_rgba(34,211,238,0.5)] hover:-translate-y-0.5"
+                >
+                  <Home size={14} /> Retour à l'accueil
+                </a>
+                <a
+                  href="/catalogue"
+                  data-testid="success-catalog-btn"
+                  className="group flex items-center justify-center gap-2 px-5 py-3.5 rounded-full border border-[#22D3EE]/40 hover:border-[#22D3EE] bg-[#0E2F36]/30 hover:bg-[#22D3EE]/10 text-[#E6F7FF] hover:text-[#22D3EE] text-[0.78rem] font-bold uppercase tracking-[0.12em] transition-all duration-300 hover:-translate-y-0.5"
+                >
+                  <Car size={14} /> Voir le catalogue
+                </a>
+                <a
+                  href="/easyloc"
+                  data-testid="success-easyloc-btn"
+                  className="group flex items-center justify-center gap-2 px-5 py-3.5 rounded-full border border-[#C9A227]/40 hover:border-[#C9A227] bg-[#0C0A07]/40 hover:bg-[#C9A227]/10 text-[#C9A227] hover:text-[#E8C547] text-[0.78rem] font-bold uppercase tracking-[0.12em] transition-all duration-300 hover:-translate-y-0.5"
+                >
+                  Basculer vers EasyLoc <ArrowRight size={14} />
+                </a>
+              </div>
+            </div>
           </motion.div>
         </div>
       </section>
