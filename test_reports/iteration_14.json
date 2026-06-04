@@ -1,0 +1,27 @@
+{
+  "summary": "Iteration 14 — backend + frontend verification of (1) new EasyLeaz success page with 3 CTAs + close, (2) admin lead-doc download via axios+blob (Bearer auth), (3) EasyLoc unavailable-dates including 'confirmed' status, (4) per-card gallery with prev/next arrows + dots, (5) aspect-[4/3] + object-cover image style, (6) @media (hover:none) CSS rule for touch devices, plus regression on EasyLoc inline reservation success/calendar. All acceptance criteria pass — 5/5 backend tests + 4/4 frontend flows.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_iter14.py",
+    "/app/test_reports/pytest/iter14_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "LeasingFormSection.js success page (lines 148-229) is correctly wired: data-testid='leasing-form-success' container, h1 with split 'Demande reçue avec succès', the three required text fragments (Nous avons bien reçu votre demande / 24 à 48 heures / Nous vous remercions pour votre confiance) and 4 testids (close-btn, success-home-btn href='/', success-catalog-btn href='/catalogue', success-easyloc-btn href='/easyloc') all verified live.",
+    "VehicleCatalogue.js extraction of VehicleCard (lines 155-298) is clean: gallery computed from vehicle.images[] with vehicle.image fallback, hasMultiple correctly hides arrows when only 1 image, gallery-prev-{id} / gallery-next-{id} testids present, dots + ARIA labels included. Image uses aspect-[4/3] + object-cover (no aggressive scale at rest). e.stopPropagation in prev/next prevents accidental modal open.",
+    "styles.css @media (hover:none) rule is correctly serialised in the cssRules (verified via stylesheets crawl in mobile viewport).",
+    "Backend /api/easyloc/vehicles/{id}/unavailable-dates now includes both 'approved' and 'confirmed' reservations — verified live: PUT status=confirmed on a 2027-08-10→2027-08-15 reservation, then GET unavailable-dates returns '2027-08-10'..'2027-08-14'.",
+    "Admin doc download triggers a true Browser download event (caught by page.expect_download()) — confirms axios+blob path (not <a href> 401)."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter14.py (NEW)"
+  ],
+  "success_rate": {"backend": "100% (5/5 iter14 tests)", "frontend": "100% (4/4 flows: gallery arrows + image cycling, mobile hover-none CSS, EasyLeaz success page with 3 CTAs + close, admin axios+blob download)"},
+  "test_credentials": "admin@easyleaz.ch / easyleaz2024",
+  "seed_data_creation": "Created 4 TEST_-prefixed leads with PDF documents (TEST_Iter14 DownloadTest + TESTIter14b/TESTIter14 from frontend submissions) and 1 TEST reservation in EasyLoc (2027-08-10→15, set to status=confirmed). Cleanup pending — main agent may want to delete TEST_* records in a periodic cron.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Iter14 acceptance verified end-to-end. Validated checkpoints: (a) /api/leads/{id}/documents/{doc_id}/download → 200 + non-empty PDF with Bearer; 401 without Bearer. (b) /api/easyloc/vehicles/{id}/unavailable-dates returns dates for both approved and confirmed reservations (live 2027-08 confirmed range present). (c) EasyLeaz success page renders after /?vehicle=X#demande submission: data-testid='leasing-form-success' + h1 'DEMANDE REÇUE AVEC SUCCÈS' (uppercase via CSS) + texts ('Nous avons bien reçu...', '24 à 48 heures', 'Nous vous remercions pour votre confiance') + 4 testids: leasing-success-close-btn, success-home-btn href='/', success-catalog-btn href='/catalogue', success-easyloc-btn href='/easyloc'. (d) EasyLoc card vehicle-card-{id} present with gallery-prev-{id}/gallery-next-{id} arrows when vehicle.images.length>1 (current A35 has 5 images); src changes on next/prev. aspect-[4/3] container + img object-cover verified. (e) @media (hover:none) CSS rule serialised in cssRules confirms transforms disabled on touch. (f) Admin download via page.expect_download() captured TEST_id.pdf, 58 bytes — proves axios+blob path. (g) EasyLoc /easyloc#reservation regression — form-dates-trigger + form-submit-button still present. No bugs found.",
+  "rca of the issue": "N/A — no issues."
+}
