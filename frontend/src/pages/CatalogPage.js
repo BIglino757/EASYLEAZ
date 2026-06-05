@@ -1,26 +1,52 @@
 import { useState, useEffect } from "react";
 import { useApp } from "@/App";
 import { motion, AnimatePresence } from "framer-motion";
-import { Fuel, Gauge, Calendar, Settings2, ChevronRight, ArrowLeft, ArrowUpDown } from "lucide-react";
+import { Fuel, Gauge, Calendar, Settings2, ChevronRight, ChevronLeft, ArrowLeft, ArrowUpDown, Zap, Droplet, Cog, Car as CarIcon } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import axios from "axios";
 
 const BACKEND = process.env.REACT_APP_BACKEND_URL;
 
-const getImgSrc = (vehicle) => {
-  const url = vehicle.image_url;
+const mediaSrc = (url) => {
   if (!url) return "";
   if (url.startsWith("http")) return url;
   return `${BACKEND}${url}`;
 };
 
+const buildGallery = (vehicle) => {
+  const arr = [];
+  if (Array.isArray(vehicle.images)) {
+    vehicle.images.forEach((img) => {
+      const path = typeof img === "string" ? img : `/api/uploads/vehicles/${img.filename}`;
+      if (path) arr.push(path);
+    });
+  }
+  if (arr.length === 0 && vehicle.image_url) arr.push(vehicle.image_url);
+  return arr;
+};
+
+const SpecLine = ({ icon: Icon, value }) => {
+  if (!value) return null;
+  return (
+    <div className="flex items-center gap-2 min-w-0">
+      <Icon size={13} className="text-[#22D3EE] flex-shrink-0" />
+      <span className="font-inter text-[0.8rem] text-[#E6F7FF]/70 truncate">{value}</span>
+    </div>
+  );
+};
+
 const VehicleCard = ({ vehicle, index }) => {
   const navigate = useNavigate();
   const [descOpen, setDescOpen] = useState(false);
+  const gallery = buildGallery(vehicle);
+  const [imgIdx, setImgIdx] = useState(0);
+  const hasMultiple = gallery.length > 1;
+  const prevImg = (e) => { e.stopPropagation(); setImgIdx((i) => (i - 1 + gallery.length) % gallery.length); };
+  const nextImg = (e) => { e.stopPropagation(); setImgIdx((i) => (i + 1) % gallery.length); };
+
   const goToForm = () => {
     const label = `${vehicle.brand} ${vehicle.model}`;
-    // Pass selected vehicle in URL — HeroSection/LeasingFormSection read it
     navigate(`/?vehicle=${encodeURIComponent(label)}#demande`);
   };
 
@@ -32,43 +58,81 @@ const VehicleCard = ({ vehicle, index }) => {
       transition={{ duration: 0.5, delay: index * 0.07 }}
       data-testid={`catalog-vehicle-${index}`}
     >
-      <div className="relative h-56 overflow-hidden">
-        <img
-          src={getImgSrc(vehicle)}
-          alt={`${vehicle.brand} ${vehicle.model}`}
-          className="vehicle-card-image w-full h-full object-cover"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-[#071A1F] via-transparent to-transparent" />
+      <div className="relative aspect-[4/3] overflow-hidden bg-[#0E2F36]">
+        {gallery.length > 0 ? (
+          <img
+            key={gallery[imgIdx]}
+            src={mediaSrc(gallery[imgIdx])}
+            alt={`${vehicle.brand} ${vehicle.model} — photo ${imgIdx + 1}`}
+            className="vehicle-card-image w-full h-full object-cover"
+            loading="lazy"
+            draggable={false}
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-[#E6F7FF]/30 text-xs uppercase tracking-wider">Aucune image</div>
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-[#071A1F] via-transparent to-transparent pointer-events-none" />
+
+        {hasMultiple && (
+          <>
+            <button
+              type="button"
+              onClick={prevImg}
+              aria-label="Photo précédente"
+              data-testid={`catalog-gallery-prev-${index}`}
+              className="absolute left-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/55 hover:bg-black/80 backdrop-blur-sm border border-white/15 hover:border-[#22D3EE]/60 text-white/85 hover:text-[#22D3EE] flex items-center justify-center transition-all duration-200 z-10"
+            >
+              <ChevronLeft size={16} />
+            </button>
+            <button
+              type="button"
+              onClick={nextImg}
+              aria-label="Photo suivante"
+              data-testid={`catalog-gallery-next-${index}`}
+              className="absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/55 hover:bg-black/80 backdrop-blur-sm border border-white/15 hover:border-[#22D3EE]/60 text-white/85 hover:text-[#22D3EE] flex items-center justify-center transition-all duration-200 z-10"
+            >
+              <ChevronRight size={16} />
+            </button>
+            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 z-10">
+              {gallery.map((_, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); setImgIdx(i); }}
+                  aria-label={`Photo ${i + 1}`}
+                  className={`h-1.5 rounded-full transition-all duration-200 ${i === imgIdx ? "w-5 bg-[#22D3EE]" : "w-1.5 bg-white/40 hover:bg-white/70"}`}
+                />
+              ))}
+            </div>
+          </>
+        )}
+
         {vehicle.badge && (
-          <div className="absolute top-4 left-4 px-3 py-1 rounded-full bg-[#22D3EE]/20 border border-[#22D3EE]/40 backdrop-blur-md">
+          <div className="absolute top-4 left-4 px-3 py-1 rounded-full bg-[#22D3EE]/20 border border-[#22D3EE]/40 backdrop-blur-md z-10">
             <span className="font-inter text-xs font-semibold text-[#22D3EE] tracking-wide">{vehicle.badge}</span>
           </div>
         )}
-        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-[#22D3EE]/5" />
       </div>
 
       <div className="p-5">
         <h3 className="font-cinzel text-lg font-semibold text-[#E6F7FF] tracking-wide uppercase">
           {vehicle.brand} {vehicle.model}
         </h3>
+        {vehicle.monthly_payment > 0 && (
+          <p className="font-inter text-xs text-[#E6F7FF]/50 mt-1">
+            Leasing dès <span className="text-[#22D3EE] font-semibold">CHF {vehicle.monthly_payment?.toLocaleString()}/mois</span>
+          </p>
+        )}
 
-        <div className="grid grid-cols-2 gap-3 mt-4">
-          <div className="flex items-center gap-2">
-            <Calendar size={14} className="text-[#22D3EE]" />
-            <span className="font-inter text-sm text-[#E6F7FF]/60">{vehicle.year}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Gauge size={14} className="text-[#22D3EE]" />
-            <span className="font-inter text-sm text-[#E6F7FF]/60">{vehicle.mileage?.toLocaleString()} km</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Fuel size={14} className="text-[#22D3EE]" />
-            <span className="font-inter text-sm text-[#E6F7FF]/60">{vehicle.fuel}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Settings2 size={14} className="text-[#22D3EE]" />
-            <span className="font-inter text-sm text-[#E6F7FF]/60">{vehicle.transmission}</span>
-          </div>
+        <div className="grid grid-cols-2 gap-x-4 gap-y-2.5 mt-4">
+          <SpecLine icon={Calendar} value={vehicle.registration_date || vehicle.year} />
+          <SpecLine icon={Fuel} value={vehicle.fuel} />
+          <SpecLine icon={Gauge} value={vehicle.mileage ? `${vehicle.mileage.toLocaleString()} km` : null} />
+          <SpecLine icon={Zap} value={vehicle.power} />
+          <SpecLine icon={Cog} value={vehicle.transmission} />
+          <SpecLine icon={Droplet} value={vehicle.fuel_consumption} />
+          <SpecLine icon={Settings2} value={vehicle.drivetrain} />
+          <SpecLine icon={CarIcon} value={vehicle.body_type} />
         </div>
 
         <div className="mt-5 pt-4 border-t border-[#22D3EE]/10 flex items-end justify-between">
