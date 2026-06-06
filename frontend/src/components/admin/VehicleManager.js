@@ -37,13 +37,13 @@ export const VehicleManager = ({ token }) => {
   useEffect(() => { fetchVehicles(); }, [fetchVehicles]);
 
   const resetForm = () => {
-    setForm({ brand: "", model: "", year: 2024, mileage: 0, fuel: "Essence", transmission: "Automatique", price: 0, monthly_payment: 0, image_url: "", description: "", badge: "", condition: "occasion" });
+    setForm({ brand: "", model: "", year: 2024, mileage: 0, fuel: "Essence", transmission: "Automatique", price: 0, monthly_payment: 0, image_url: "", description: "", badge: "", condition: "occasion", registration_date: "", power: "", fuel_consumption: "", drivetrain: "", body_type: "" });
     setEditing(null);
   };
 
   const openEdit = (v) => {
     setEditing(v.id);
-    setForm({ brand: v.brand, model: v.model, year: v.year, mileage: v.mileage, fuel: v.fuel, transmission: v.transmission, price: v.price, monthly_payment: v.monthly_payment, image_url: v.image_url || "", description: v.description || "", badge: v.badge || "", condition: v.condition || "occasion" });
+    setForm({ brand: v.brand, model: v.model, year: v.year, mileage: v.mileage, fuel: v.fuel, transmission: v.transmission, price: v.price, monthly_payment: v.monthly_payment, image_url: v.image_url || "", description: v.description || "", badge: v.badge || "", condition: v.condition || "occasion", registration_date: v.registration_date || "", power: v.power || "", fuel_consumption: v.fuel_consumption || "", drivetrain: v.drivetrain || "", body_type: v.body_type || "" });
     setDialogOpen(true);
   };
 
@@ -214,6 +214,33 @@ export const VehicleManager = ({ token }) => {
                   <div className="space-y-1">
                     <Label className="text-xs text-[#E6F7FF]/60">Badge</Label>
                     <Input value={form.badge} onChange={(e) => handleChange("badge", e.target.value)} placeholder="Ex: Premium, Neuf" className="bg-[#071A1F]/50 border-[#22D3EE]/15 text-[#E6F7FF] h-10 rounded-lg" data-testid="vehicle-form-badge" />
+                  </div>
+                </div>
+
+                {/* Specs détaillées */}
+                <div className="pt-2">
+                  <p className="text-[10px] text-[#22D3EE]/70 uppercase tracking-[0.15em] font-bold mb-2">Caractéristiques détaillées</p>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <Label className="text-xs text-[#E6F7FF]/60">1ère immatriculation</Label>
+                      <Input value={form.registration_date} onChange={(e) => handleChange("registration_date", e.target.value)} placeholder="Ex: 09.2020" className="bg-[#071A1F]/50 border-[#22D3EE]/15 text-[#E6F7FF] h-10 rounded-lg" data-testid="vehicle-form-regdate" />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs text-[#E6F7FF]/60">Puissance</Label>
+                      <Input value={form.power} onChange={(e) => handleChange("power", e.target.value)} placeholder="Ex: 150 PS (110 kW)" className="bg-[#071A1F]/50 border-[#22D3EE]/15 text-[#E6F7FF] h-10 rounded-lg" data-testid="vehicle-form-power" />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs text-[#E6F7FF]/60">Consommation</Label>
+                      <Input value={form.fuel_consumption} onChange={(e) => handleChange("fuel_consumption", e.target.value)} placeholder="Ex: 7.3 l/100 km" className="bg-[#071A1F]/50 border-[#22D3EE]/15 text-[#E6F7FF] h-10 rounded-lg" data-testid="vehicle-form-consumption" />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs text-[#E6F7FF]/60">Type de carrosserie</Label>
+                      <Input value={form.body_type} onChange={(e) => handleChange("body_type", e.target.value)} placeholder="Ex: SUV / Tout-terrain" className="bg-[#071A1F]/50 border-[#22D3EE]/15 text-[#E6F7FF] h-10 rounded-lg" data-testid="vehicle-form-bodytype" />
+                    </div>
+                    <div className="space-y-1 col-span-2">
+                      <Label className="text-xs text-[#E6F7FF]/60">Transmission / Traction</Label>
+                      <Input value={form.drivetrain} onChange={(e) => handleChange("drivetrain", e.target.value)} placeholder="Ex: Traction avant, 4x4, Propulsion" className="bg-[#071A1F]/50 border-[#22D3EE]/15 text-[#E6F7FF] h-10 rounded-lg" data-testid="vehicle-form-drivetrain" />
+                    </div>
                   </div>
                 </div>
                 <div className="space-y-1">

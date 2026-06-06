@@ -92,6 +92,12 @@ class Vehicle(BaseModel):
     badge: str = ""
     condition: str = "occasion"
     status: str = "active"
+    # Extended specs (optional)
+    registration_date: str = ""
+    power: str = ""
+    fuel_consumption: str = ""
+    drivetrain: str = ""
+    body_type: str = ""
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 class VehicleCreate(BaseModel):
@@ -108,6 +114,11 @@ class VehicleCreate(BaseModel):
     description: str = ""
     badge: str = ""
     condition: str = "occasion"
+    registration_date: str = ""
+    power: str = ""
+    fuel_consumption: str = ""
+    drivetrain: str = ""
+    body_type: str = ""
 
 class VehicleUpdate(BaseModel):
     brand: Optional[str] = None
@@ -123,6 +134,11 @@ class VehicleUpdate(BaseModel):
     badge: Optional[str] = None
     condition: Optional[str] = None
     status: Optional[str] = None
+    registration_date: Optional[str] = None
+    power: Optional[str] = None
+    fuel_consumption: Optional[str] = None
+    drivetrain: Optional[str] = None
+    body_type: Optional[str] = None
 
 class CMSContentUpdate(BaseModel):
     content: dict

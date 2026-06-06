@@ -70,6 +70,13 @@ export const LeadsManager = ({ token }) => {
         `${API}/leads/${leadId}/documents/${docId}/download`,
         { headers, responseType: "blob" }
       );
+      // Detect JSON error returned as a Blob (when response is 200 with error body — defensive)
+      const ct = res.headers["content-type"] || "";
+      if (ct.includes("application/json")) {
+        const text = await res.data.text();
+        try { const j = JSON.parse(text); throw new Error(j.detail || "Téléchargement impossible"); }
+        catch (e) { throw e; }
+      }
       const blob = new Blob([res.data]);
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
@@ -81,7 +88,19 @@ export const LeadsManager = ({ token }) => {
       window.URL.revokeObjectURL(url);
     } catch (e) {
       console.error("Download error:", e);
-      alert("Erreur lors du téléchargement du document.");
+      // Try to extract error detail from the blob if response was non-2xx
+      let msg = "Erreur lors du téléchargement du document.";
+      try {
+        if (e.response?.data) {
+          const blob = e.response.data;
+          if (blob instanceof Blob) {
+            const text = await blob.text();
+            const j = JSON.parse(text);
+            if (j.detail) msg = j.detail;
+          }
+        }
+      } catch (_) { /* keep default */ }
+      alert(msg);
     }
   };
 

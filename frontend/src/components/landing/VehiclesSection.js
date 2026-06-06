@@ -1,6 +1,6 @@
 import { useApp } from "@/App";
 import { motion } from "framer-motion";
-import { Fuel, Gauge, Calendar, Settings2, ChevronRight } from "lucide-react";
+import { Fuel, Gauge, Calendar, Settings2, ChevronRight, ChevronLeft, Zap, Droplet, Cog, Car as CarIcon } from "lucide-react";
 import { useRef, useState } from "react";
 import { mediaUrl } from "@/lib/mediaUrl";
 
@@ -9,6 +9,23 @@ const VehicleCard = ({ vehicle, index }) => {
     const el = document.querySelector(id);
     if (el) el.scrollIntoView({ behavior: "smooth" });
   };
+
+  // Build gallery: prefer vehicle.images[] (filenames), fallback to image_url
+  const gallery = (() => {
+    const arr = [];
+    if (vehicle.images && Array.isArray(vehicle.images) && vehicle.images.length > 0) {
+      vehicle.images.forEach((img) => {
+        const path = typeof img === "string" ? img : `/api/uploads/vehicles/${img.filename}`;
+        arr.push(path);
+      });
+    }
+    if (arr.length === 0 && vehicle.image_url) arr.push(vehicle.image_url);
+    return arr;
+  })();
+  const [imgIdx, setImgIdx] = useState(0);
+  const hasMultiple = gallery.length > 1;
+  const prevImg = (e) => { e.stopPropagation(); setImgIdx((i) => (i - 1 + gallery.length) % gallery.length); };
+  const nextImg = (e) => { e.stopPropagation(); setImgIdx((i) => (i + 1) % gallery.length); };
 
   return (
     <motion.div
@@ -19,23 +36,64 @@ const VehicleCard = ({ vehicle, index }) => {
       transition={{ duration: 0.6, delay: index * 0.1 }}
       data-testid={`vehicle-card-${index}`}
     >
-      {/* Image */}
-      <div className="relative h-56 overflow-hidden">
-        <img
-          src={mediaUrl(vehicle.image_url)}
-          alt={`${vehicle.brand} ${vehicle.model}`}
-          className="vehicle-card-image w-full h-full object-cover"
-        />
+      {/* Image gallery */}
+      <div className="relative aspect-[4/3] overflow-hidden bg-[#0E2F36]">
+        {gallery.length > 0 ? (
+          <img
+            key={gallery[imgIdx]}
+            src={mediaUrl(gallery[imgIdx])}
+            alt={`${vehicle.brand} ${vehicle.model} — photo ${imgIdx + 1}`}
+            className="vehicle-card-image w-full h-full object-cover"
+            loading="lazy"
+            draggable={false}
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-[#E6F7FF]/30 text-xs uppercase tracking-wider">Aucune image</div>
+        )}
         {/* Gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-[#071A1F] via-transparent to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#071A1F] via-transparent to-transparent pointer-events-none" />
+
+        {/* Gallery arrows */}
+        {hasMultiple && (
+          <>
+            <button
+              type="button"
+              onClick={prevImg}
+              aria-label="Photo précédente"
+              data-testid={`leaz-gallery-prev-${index}`}
+              className="absolute left-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/55 hover:bg-black/80 backdrop-blur-sm border border-white/15 hover:border-[#22D3EE]/60 text-white/85 hover:text-[#22D3EE] flex items-center justify-center transition-all duration-200 z-10"
+            >
+              <ChevronLeft size={16} />
+            </button>
+            <button
+              type="button"
+              onClick={nextImg}
+              aria-label="Photo suivante"
+              data-testid={`leaz-gallery-next-${index}`}
+              className="absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/55 hover:bg-black/80 backdrop-blur-sm border border-white/15 hover:border-[#22D3EE]/60 text-white/85 hover:text-[#22D3EE] flex items-center justify-center transition-all duration-200 z-10"
+            >
+              <ChevronRight size={16} />
+            </button>
+            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 z-10">
+              {gallery.map((_, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); setImgIdx(i); }}
+                  aria-label={`Photo ${i + 1}`}
+                  className={`h-1.5 rounded-full transition-all duration-200 ${i === imgIdx ? "w-5 bg-[#22D3EE]" : "w-1.5 bg-white/40 hover:bg-white/70"}`}
+                />
+              ))}
+            </div>
+          </>
+        )}
+
         {/* Badge */}
         {vehicle.badge && (
-          <div className="absolute top-4 left-4 px-3 py-1 rounded-full bg-[#22D3EE]/20 border border-[#22D3EE]/40 backdrop-blur-md">
+          <div className="absolute top-4 left-4 px-3 py-1 rounded-full bg-[#22D3EE]/20 border border-[#22D3EE]/40 backdrop-blur-md z-10">
             <span className="font-inter text-xs font-semibold text-[#22D3EE] tracking-wide">{vehicle.badge}</span>
           </div>
         )}
-        {/* Glow on hover */}
-        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-[#22D3EE]/5" />
       </div>
 
       {/* Info */}
@@ -43,25 +101,22 @@ const VehicleCard = ({ vehicle, index }) => {
         <h3 className="font-cinzel text-lg font-semibold text-[#E6F7FF] tracking-wide uppercase">
           {vehicle.brand} {vehicle.model}
         </h3>
+        {vehicle.monthly_payment > 0 && (
+          <p className="font-inter text-xs text-[#E6F7FF]/50 mt-1">
+            Leasing dès <span className="text-[#22D3EE] font-semibold">CHF {vehicle.monthly_payment?.toLocaleString()}/mois</span>
+          </p>
+        )}
 
-        {/* Specs grid */}
-        <div className="grid grid-cols-2 gap-3 mt-4">
-          <div className="flex items-center gap-2">
-            <Calendar size={14} className="text-[#22D3EE]" />
-            <span className="font-inter text-sm text-[#E6F7FF]/60">{vehicle.year}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Gauge size={14} className="text-[#22D3EE]" />
-            <span className="font-inter text-sm text-[#E6F7FF]/60">{vehicle.mileage?.toLocaleString()} km</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Fuel size={14} className="text-[#22D3EE]" />
-            <span className="font-inter text-sm text-[#E6F7FF]/60">{vehicle.fuel}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Settings2 size={14} className="text-[#22D3EE]" />
-            <span className="font-inter text-sm text-[#E6F7FF]/60">{vehicle.transmission}</span>
-          </div>
+        {/* Specs grid (2 columns like Autoscout24) */}
+        <div className="grid grid-cols-2 gap-x-4 gap-y-2.5 mt-4">
+          <SpecLine icon={Calendar} value={vehicle.registration_date || vehicle.year} />
+          <SpecLine icon={Fuel} value={vehicle.fuel} />
+          <SpecLine icon={Gauge} value={vehicle.mileage ? `${vehicle.mileage.toLocaleString()} km` : null} />
+          <SpecLine icon={Zap} value={vehicle.power} />
+          <SpecLine icon={Cog} value={vehicle.transmission} />
+          <SpecLine icon={Droplet} value={vehicle.fuel_consumption} />
+          <SpecLine icon={Settings2} value={vehicle.drivetrain} />
+          <SpecLine icon={CarIcon} value={vehicle.body_type} />
         </div>
 
         {/* Price */}
@@ -99,6 +154,16 @@ const VehicleCard = ({ vehicle, index }) => {
         </div>
       </div>
     </motion.div>
+  );
+};
+
+const SpecLine = ({ icon: Icon, value }) => {
+  if (!value) return null;
+  return (
+    <div className="flex items-center gap-2 min-w-0">
+      <Icon size={13} className="text-[#22D3EE] flex-shrink-0" />
+      <span className="font-inter text-[0.8rem] text-[#E6F7FF]/70 truncate">{value}</span>
+    </div>
   );
 };
 
